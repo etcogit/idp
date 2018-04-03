@@ -10,20 +10,23 @@ app.use(morgan('combine'))
 app.use(bodyParser.json())
 app.use(cors())
 
+// Je me connecte à ma DB chez mlab.com:
+// DB name: idp
+// DB User: etcolab
+// DB Pass: etcolab
+var mongoDB = 'mongodb://etcomlab:etcomlab@ds231559.mlab.com:31559/idp'
+mongoose.connect(mongoDB)
+mongoose.Promise = global.Promise
+var db = mongoose.connection
+db.on('error', console.error.bind(console, 'MongoDB connection error:'))
+
 app.get('/status', (req, res) => {
   res.send({
     message: 'hello world!'
   })
 })
 
-// app.set('port', process.env.PORT || 8081)
-
-// app.listen(process.env.PORT || 8081)
-
-// mongoose.connect('mongodb://' + process.env.IP + ':28017/db/idp', function (err, db) {
-var myHost = encodeURIComponent('0.0.0.0:27017/idp')
-console.log(myHost)
-// mongoose.connect('mongodb://' + process.env.IP + ':27017/idp', function (err, db) {
+/*
 mongoose.connect('mongodb://etcomlab:etcomlab@ds231559.mlab.com:31559/idp', function (err, db) {
   if (err) {
     console.log('Impossible de se connecter à la db', err)
@@ -42,7 +45,7 @@ mongoose.connect('mongodb://etcomlab:etcomlab@ds231559.mlab.com:31559/idp', func
     })
   }
 })
-
+*/
 /*
 mongoose.connection.once('open', function () {
   console.log('Connection Estabilished')
@@ -53,5 +56,5 @@ var server = app.listen(8081, function () {
   var host = server.address().address
   var port = server.address().port
 
-  console.log('Example app listening at http://%s:%s', host, port)
+  console.log('Example app listening at ' + host + port)
 })
