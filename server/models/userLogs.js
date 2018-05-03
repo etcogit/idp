@@ -1,8 +1,8 @@
 // https://developer.mozilla.org/en-US/docs/Learn/Server-side/Express_Nodejs/mongoose
 // http://mongoosejs.com/docs/schematypes.html
-var mongoose = require('mongoose');
+var mongoose = require('mongoose')
 
-var Schema = mongoose.Schema;
+var Schema = mongoose.Schema
 
 var userLogsSchema = new Schema(
   {
@@ -15,9 +15,9 @@ var userLogsSchema = new Schema(
     dataAfterAction: Schema.Types.Mixed,
     frontendErrorMessage: Schema.Types.Mixed,
     apiSentParams: Schema.Types.Mixed,
-    apiReturneddParams: Schema.Types.Mixed,
+    apiReturneddParams: Schema.Types.Mixed
   }
-);
+)
 
-//Export model
-module.exports = mongoose.model('userLogs', userLogsSchema);
+// Export model
+module.exports = mongoose.model('userLogs', userLogsSchema)

@@ -10,6 +10,10 @@ app.use(morgan('combine'))
 app.use(bodyParser.json())
 app.use(cors())
 
+var ressources = require('../routes/ressources') // Import routes for "/ressources"
+
+app.use('/ressources', ressources) // Add /ressources routes to middelware chain
+
 // Je me connecte à ma DB chez mlab.com:
 // DB name: idp
 // DB User: etcolab
