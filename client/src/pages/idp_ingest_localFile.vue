@@ -28,7 +28,7 @@
       -->
       <!-- gets displayed only when there's at least one row selected -->
       <template slot="top-selection" slot-scope="props">
-        <q-btn color="secondary" flat label="Action 1" class="q-mr-sm" />
+        <q-btn color="secondary" flat label="Action 1" class="q-mr-sm" @click="apiTest" />
         <q-btn color="secondary" flat label="Action 2" />
         <div class="col" />
         <q-btn color="negative" flat round delete icon="delete" @click="startGlobalIngest" />
@@ -224,7 +224,7 @@
 // import ImageCompressor from '@xkeshi/image-compressor'
 import FileUpload from 'vue-upload-component'
 // import VueJsonPretty from 'vue-json-pretty'
-
+import axios from 'axios'
 import { format, date } from 'quasar' // etco: j'importe un "utils Quasar" dans la variable "format"
 const { humanStorageSize } = format // etco: Je récupère la méthode "humanStorageSize" dans les "utils" de Quasar stockés dans "format" lors de l'import
 const { addToDate, formatDate } = date
@@ -491,6 +491,24 @@ export default {
   },
   methods: {
     ...mapActions([]), // etco: j'importe toutes les "actions" de mes stores
+    apiTest () {
+      axios.post('http://idp-etcocloud9.c9users.io:8081/status', JSON.stringify({rtbfLogin: 'etco'}), {headers: {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'}})
+        .then(function (res) {
+          console.log(res)
+        })
+        .catch(function (err) {
+          console.log(err)
+        })
+      /*
+      axios.post('http://idp-etcocloud9.c9users.io:8081/status', {
+        rtbfLogin: 'etco'
+      })
+        .then(response => {})
+        .catch(e => {
+          this.errors.push(e)
+        })
+      */
+    },
     // etco: méthode qui me crée un id ING
     newIngestId () {
       return 'ING' + formatDate(new Date(), 'YYYYDDMMHHmmss')

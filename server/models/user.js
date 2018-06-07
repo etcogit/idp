@@ -12,7 +12,7 @@ var userSchema = new Schema(
     createdDate: {type: Date, default: Date.now},
     sourceDb: {type: String, required: true, default: 'Intraprod', enum: ['OptiTime', 'Whats\'On', 'Intraprod', 'Info360']},
     sourceID: {type: String}, // L'identifiant unique de cette ressource dans la DB externe
-    rtbfLogin: {type: String, required: true, max: 10, trim: true},
+    rtbfLogin: {type: String, required: true, max: 10, trim: true, unique: true},
     mainRtbfLocation: {type: String, required: true, default: 'BXL', enum: ['BXL', 'CHA', 'LGE', 'MONS', 'NAM']},
     email: {
       rtbf: {type: String, trim: true},
@@ -66,5 +66,5 @@ userSchema
     return '/catalog/author/' + this._id
   })
 
-// Export model
-module.exports = mongoose.model('Author', userSchema)
+// Export function to create "users" model class
+module.exports = mongoose.model('users', userSchema)
