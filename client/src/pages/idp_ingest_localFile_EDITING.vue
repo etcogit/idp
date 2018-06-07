@@ -6,6 +6,9 @@
   <div v-show="$refs.upload && $refs.upload.dropActive" class="drop-active">
     <h3>Dépose tes fichiers</h3>
   </div>
+
+  <div>tutu {{ myDataModel }}</div><q-input v-model="myDataModel" placeholder="Add some text..." /><q-btn round color="secondary" icon="card_giftcard" @click="myIngestMethod(myDataModel)" />
+
   <div class="row justify-center">
     <!-- Tableau des "currentIngests" -->
     <q-table
@@ -16,7 +19,7 @@
       row-key="id"
       color="secondary"
       title="Selectionne les fichiers à ingester"
-      v-if="ingests.currentIngest.files && ingests.currentIngest.files.length > 0"
+      v-if="files.length > 0"
       :pagination.sync="pagination"
     >
       <!--
@@ -244,13 +247,11 @@ export default {
         monthNames: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
       })
       return myDate
-    },
-    ingests () {
-      return this.$store.state.ingests.ingests
     }
   },
   data () {
     return {
+      myDataModel: 'myDataModel',
       ingestStatus: [
         {code: 0, label: 'none', icon: '', color: ''},
         {code: 1, label: 'Waiting for upload', icon: 'access_time', color: 'info'},
@@ -277,7 +278,6 @@ export default {
       // uploadAuto: false,
 
       // etco: propriétés de tous les ingests
-      /*
       ingests: {
         emptyPattern: {
           ingestId: '',
@@ -316,7 +316,6 @@ export default {
         success: [],
         error: []
       },
-      */
 
       // etco: toutes les prods
       prods: {
@@ -491,6 +490,13 @@ export default {
   },
   methods: {
     ...mapActions([]), // etco: j'importe toutes les "actions" de mes stores
+    myIngestMethod (val) {
+      console.log('toto = ' + this.$store.getters['ingests/isCurrentIngestObjectEmpty'])
+      if (this.$store.getters['ingests/isCurrentIngestObjectEmpty']) { // s'il n'y a pas encore d'objet "currentIngest"
+        console.log('emptyCurrentIngest_etco')
+      }
+      // return this.$store.commit('ingests/updateMyIngests', val)
+    },
     // etco: méthode qui me crée un id ING
     newIngestId () {
       return 'ING' + formatDate(new Date(), 'YYYYDDMMHHmmss')
@@ -500,29 +506,29 @@ export default {
       // Transfert des fichiers sélectionnnés dans un objet dédié à cet ingest
       console.log('startGlobalIngest')
       // Ajustement de qques métadonnées
-      this.$store.state.ingests.ingests.currentIngest.ingestId = this.newIngestId()
-      this.$store.state.ingests.ingests.runningIngests.push(this.$store.state.ingests.ingests.currentIngest)
+      this.ingests.currentIngest.ingestId = this.newIngestId()
+      this.ingests.runningIngests.push(this.ingests.currentIngest)
       // ATTENTION: je ne dois supprimer de "files" QUE les fichiers qui étaient sélectionnés. Les autres doivent rester
-      for (var i = 0; i < this.$store.state.ingests.ingests.currentIngest.files.length; i++) {
+      for (var i = 0; i < this.ingests.currentIngest.files.length; i++) {
         // console.log(this.ingests.currentIngest.files[i].fileName)
-        var index = this.files.indexOf(this.$store.state.ingests.ingests.currentIngest.files[i])
+        var index = this.files.indexOf(this.ingests.currentIngest.files[i])
         this.files.splice(index, 1)
       }
-      this.$store.state.ingests.ingests.currentIngest = JSON.parse(JSON.stringify(this.$store.state.ingests.ingests.emptyPattern)) // Je copie le "emptyPattern"
+      this.ingests.currentIngest = JSON.parse(JSON.stringify(this.ingests.emptyPattern)) // Je copie le "emptyPattern"
       // Je lance l'ingest
       this.simulateIngestPayload()
     },
     // etco: quand une checkBox est cliquée ou quand la checkbox générale est cliquée, je peux déclencher des actions
     checkboxToggled (file) {
       console.log('checkboxToggled')
-      if (this.$store.state.ingests.ingests.currentIngest.ingestUploadStatus === 'stopped') {
+      if (this.ingests.currentIngest.ingestUploadStatus === 'stopped') {
         // console.log('simulateUpload')
         this.simulateUpload()
       }
       // Je regarde s'il n'y a pas un fichier qui vient de se rajouter et dont l'upload avait été mis en pause. Auquel cas je dois remettre son statut à "Waiting for upload"
-      for (var i = 0; i < this.$store.state.ingests.ingests.currentIngest.files.length; i++) {
-        if (this.$store.state.ingests.ingests.currentIngest.files[i].idp.ingestStatus.code === 6 && this.$store.state.ingests.ingests.currentIngest.files[i].idp.uploadPercentage < 100) {
-          this.$store.state.ingests.ingests.currentIngest.files[i].idp.ingestStatus = this.ingestStatus[1]
+      for (var i = 0; i < this.ingests.currentIngest.files.length; i++) {
+        if (this.ingests.currentIngest.files[i].idp.ingestStatus.code === 6 && this.ingests.currentIngest.files[i].idp.uploadPercentage < 100) {
+          this.ingests.currentIngest.files[i].idp.ingestStatus = this.ingestStatus[1]
         }
       }
     },
@@ -532,9 +538,9 @@ export default {
         icon: 'delete',
         message: `Le fichier ${fileToDelete.name} a été retiré de la liste`
       })
-      var index1 = this.$store.state.ingests.ingests.currentIngest.files.indexOf(fileToDelete) // Si le fichier était sélectionné (présent dans l'array ci-dessous), alors je le supprime
+      var index1 = this.ingests.currentIngest.files.indexOf(fileToDelete) // Si le fichier était sélectionné (présent dans l'array ci-dessous), alors je le supprime
       if (index1 >= 0) {
-        this.$store.state.ingests.ingests.currentIngest.files.splice(index1, 1)
+        this.ingests.currentIngest.files.splice(index1, 1)
       }
       var index2 = this.files.indexOf(fileToDelete)
       this.files.splice(index2, 1)
@@ -554,10 +560,10 @@ export default {
     // etco: simulation d'ingest des fichiers -> payload Ingest + simulation du temps d'ingest en fonction du poids -> process parallèles
     simulateIngestPayload () {
       // Chercher dans runningIngests s'il y a des fichiers uploadés
-      for (var i = 0; i < this.$store.state.ingests.ingests.runningIngests.length; i++) {
+      for (var i = 0; i < this.ingests.runningIngests.length; i++) {
         console.log('runningIngest ' + i)
-        for (var j = 0; j < this.$store.state.ingests.ingests.runningIngests[i].files.length; j++) {
-          let fileToIngest = this.$store.state.ingests.ingests.runningIngests[i].files[j]
+        for (var j = 0; j < this.ingests.runningIngests[i].files.length; j++) {
+          let fileToIngest = this.ingests.runningIngests[i].files[j]
           console.log('runningIngest ' + i + ' file ' + j)
           // Pour chaque fichier uploadé...
           if (fileToIngest.idp.ingestStatus.code === 3) {
@@ -566,11 +572,11 @@ export default {
             fileToIngest.idp.ingestPayload = {}
             // Je vérifie si ce fichier est le dernier de son ingest
             let isLatestFileOfIngest = false
-            if (j === this.$store.state.ingests.ingests.runningIngests[i].files.length - 1) {
+            if (j === this.ingests.runningIngests[i].files.length - 1) {
               isLatestFileOfIngest = true
             }
             // ... lancer un timeout pour ce fichier, proportionnel au poids du fichier
-            this.simulateIngestDuration(fileToIngest, isLatestFileOfIngest, this.$store.state.ingests.ingests.runningIngests[i].ingestId)
+            this.simulateIngestDuration(fileToIngest, isLatestFileOfIngest, this.ingests.runningIngests[i].ingestId)
             // ... passer le statut d'ingest à "Ingest started"
             fileToIngest.idp.ingestStatus = this.ingestStatus[4]
           }
@@ -578,7 +584,7 @@ export default {
         }
       }
     },
-    // etco: je simule la durée d'ingest proportionnelement au poids du fichier, puis je cloture l'ingest
+    // etco: je simulae la durée d'ingest proportionnelement au poids du fichier, puis je cloture l'ingest
     simulateIngestDuration (fileToIngest, isLatestFileOfIngest, ingestId) {
       console.log(isLatestFileOfIngest + ' - ' + ingestId)
       setTimeout(() => {
@@ -588,11 +594,10 @@ export default {
         if (isLatestFileOfIngest) {
           console.log('ce fichier est le dernier')
           // Je transfère cet ingest dans le tableau des ingests terminés
-          for (var i = 0; i < this.$store.state.ingests.ingests.runningIngests.length; i++) {
-            if (this.$store.state.ingests.ingests.runningIngests[i].ingestId === ingestId) {
-              console.log('ça y est!')
-              this.$store.state.ingests.ingests.successIngests.push(this.$store.state.ingests.ingests.runningIngests[i])
-              this.$store.state.ingests.ingests.runningIngests.splice(i, 1)
+          for (var i = 0; i < this.ingests.runningIngests.length; i++) {
+            if (this.ingests.runningIngests[i].ingestId === ingestId) {
+              this.ingests.successIngests.push(this.ingests.runningIngests[i])
+              this.ingests.runningIngests.splice(i, 1)
             }
           }
         }
@@ -600,22 +605,20 @@ export default {
     },
     simulateUpload (previousFile) {
       // console.log(previousFile)
-      if (this.$store.state.ingests.ingests.currentIngest.ingestUploadStatus !== 'running') {
-        this.$store.commit('ingests/currentIngestUploadStatusUpdate', 'running')
-      }
+      this.ingests.currentIngest.ingestUploadStatus = 'running'
       setTimeout(() => {
         let file = Object
         // Je cherche un fichier à uploader
         // Je vais d'abord voir dans les "runningIngests" s'il reste des fichiers à uploader
-        if (this.$store.state.ingests.ingests.runningIngests.length > 0) {
+        if (this.ingests.runningIngests.length > 0) {
           // console.log('runningIngests.length = ' + this.ingests.runningIngests.length)
-          for (var i = 0; i < this.$store.state.ingests.ingests.runningIngests.length; i++) {
+          for (var i = 0; i < this.ingests.runningIngests.length; i++) {
             // console.log('runningIngest ' + i)
-            for (var j = 0; j < this.$store.state.ingests.ingests.runningIngests[i].files.length; j++) {
+            for (var j = 0; j < this.ingests.runningIngests[i].files.length; j++) {
               // console.log('runningIngest ' + i + ' file ' + j)
-              if (!this.$store.state.ingests.ingests.runningIngests[i].files[j].success) {
+              if (!this.ingests.runningIngests[i].files[j].success) {
                 // console.log('runningIngest ' + i + ' file ' + j + ' à uploader')
-                file = this.$store.state.ingests.ingests.runningIngests[i].files[j] // C'est ce fichier-ci qu'il faut uploader
+                file = this.ingests.runningIngests[i].files[j] // C'est ce fichier-ci qu'il faut uploader
                 if (previousFile && previousFile !== file && previousFile.idp.uploadPercentage < 100) {
                   previousFile.idp.ingestStatus = this.ingestStatus[6]
                   // console.log('ingest arreté')
@@ -632,11 +635,11 @@ export default {
         // Maintenant je regarde s'il y a des "currentIngests" à uploader
         if (Object.keys(file).length === 0) { // Si "files" est un objet vide, c'est qu'il n'y a pas / plus de runninIngests à traiter
           // console.log('currentIngest.files.length = ' + this.ingests.currentIngest.files.length)
-          for (var k = 0; k < this.$store.state.ingests.ingests.currentIngest.files.length; k++) {
+          for (var k = 0; k < this.ingests.currentIngest.files.length; k++) {
             // console.log(this.ingests.currentIngest.files.length)
             // console.log(this.ingests.currentIngest.files[k].success)
-            if (!this.$store.state.ingests.ingests.currentIngest.files[k].success) {
-              file = this.$store.state.ingests.ingests.currentIngest.files[k] // C'est ce fichier-ci qu'il faut uploader
+            if (!this.ingests.currentIngest.files[k].success) {
+              file = this.ingests.currentIngest.files[k] // C'est ce fichier-ci qu'il faut uploader
               if (previousFile && previousFile !== file && previousFile.idp.uploadPercentage < 100) {
                 previousFile.idp.ingestStatus = this.ingestStatus[6]
                 // console.log('ingest arreté')
@@ -652,7 +655,7 @@ export default {
             previousFile.idp.ingestStatus = this.ingestStatus[6]
             // console.log('ingest arreté')
           }
-          this.$store.commit('ingests/currentIngestUploadStatusUpdate', 'stopped')
+          this.ingests.currentIngest.ingestUploadStatus = 'stopped'
           console.log('stopped, aucun fichier trouvé')
         } else { // Si "files" n'est pas un objet vide
           if (file.idp.uploadSize <= file.size) {
@@ -744,11 +747,11 @@ export default {
         this.$store.commit('ingests/currentIngestAddFile', {
           newFile: newFile
         })
-        // etcoInMutator: this.ingests.currentIngest.files.push(newFile)
-        // etcoInMutator: this.ingests.currentIngest.ingestTotalSize += newFile.size
-        // etcoInMutator: this.ingests.currentIngest.ingestTotalSizeHuman = humanStorageSize(this.ingests.currentIngest.ingestTotalSize)
+        this.ingests.currentIngest.files.push(newFile)
+        this.ingests.currentIngest.ingestTotalSize += newFile.size
+        this.ingests.currentIngest.ingestTotalSizeHuman = humanStorageSize(this.ingests.currentIngest.ingestTotalSize)
         // this.simulateProgress(newFile)
-        if (this.$store.state.ingests.ingests.currentIngest.ingestUploadStatus === 'stopped') {
+        if (this.ingests.currentIngest.ingestUploadStatus === 'stopped') {
           console.log('simulateUpload')
           this.simulateUpload()
         }

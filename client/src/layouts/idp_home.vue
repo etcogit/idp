@@ -15,6 +15,9 @@
           IntraProd
           <span slot="subtitle">NUMPROD everywhere</span>
         </q-toolbar-title>
+        <div>Uploading: {{totalRunningUploads}}</div>
+        <div>&nbsp;-&nbsp;Ingesting: {{totalRunningIngests}}</div>
+        <div>&nbsp;-&nbsp;Succeeded: {{totalSucceededIngests}}</div>
         <q-btn
           flat
           round
@@ -104,6 +107,55 @@ export default {
   data () {
     return {
       leftDrawerOpen: true
+    }
+  },
+  computed: {
+    totalRunningUploads () {
+      var totalRunningUploads = 0
+      if (this.$store.state.ingests.ingests.currentIngest.files) {
+        for (var i = 0; i < this.$store.state.ingests.ingests.currentIngest.files.length; i++) {
+          if ([1, 2, 6].includes(this.$store.state.ingests.ingests.currentIngest.files[i].idp.ingestStatus.code)) {
+            totalRunningUploads++
+          }
+        }
+      }
+      for (var j = 0; j < this.$store.state.ingests.ingests.runningIngests.length; j++) {
+        for (var k = 0; k < this.$store.state.ingests.ingests.runningIngests[j].files.length; k++) {
+          if ([1, 2, 6].includes(this.$store.state.ingests.ingests.runningIngests[j].files[k].idp.ingestStatus.code)) {
+            totalRunningUploads++
+          }
+        }
+      }
+      return totalRunningUploads
+    },
+    totalRunningIngests () {
+      var totalRunningIngests = 0
+      for (var i = 0; i < this.$store.state.ingests.ingests.runningIngests.length; i++) {
+        for (var j = 0; j < this.$store.state.ingests.ingests.runningIngests[i].files.length; j++) {
+          if ([3, 4].includes(this.$store.state.ingests.ingests.runningIngests[i].files[j].idp.ingestStatus.code)) {
+            totalRunningIngests++
+          }
+        }
+      }
+      return totalRunningIngests
+    },
+    totalSucceededIngests () {
+      var totalSucceededIngests = 0
+      for (var i = 0; i < this.$store.state.ingests.ingests.runningIngests.length; i++) {
+        for (var j = 0; j < this.$store.state.ingests.ingests.runningIngests[i].files.length; j++) {
+          if (this.$store.state.ingests.ingests.runningIngests[i].files[j].idp.ingestStatus.code === 5) {
+            totalSucceededIngests++
+          }
+        }
+      }
+      for (var k = 0; k < this.$store.state.ingests.ingests.successIngests.length; k++) {
+        for (var l = 0; l < this.$store.state.ingests.ingests.successIngests[k].files.length; l++) {
+          if (this.$store.state.ingests.ingests.successIngests[k].files[l].idp.ingestStatus.code === 5) {
+            totalSucceededIngests++
+          }
+        }
+      }
+      return totalSucceededIngests
     }
   }
 }
