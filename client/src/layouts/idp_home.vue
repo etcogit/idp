@@ -18,13 +18,62 @@
         <div>Uploading: {{totalRunningUploads}}</div>
         <div>&nbsp;-&nbsp;Ingesting: {{totalRunningIngests}}</div>
         <div>&nbsp;-&nbsp;Succeeded: {{totalSucceededIngests}}</div>
+        <!--
+        <q-btn color="secondary">
+          <q-icon name="directions" />
+          <q-popover v-model="popover">
+            <div>tototititututata</div>
+          </q-popover>
+        </q-btn>
+        -->
         <q-btn
-          flat
-          round
           dense
+          flat
           icon="account_box"
-          @click="leftDrawerOpen = !leftDrawerOpen"
-        />
+        >
+          <q-popover>
+            <q-item>
+              <q-item-main>
+                Connected User:<br /> {{ ingests.user.firstName }} {{ ingests.user.lastName }} ({{ ingests.user.rtbfLogin }})
+              </q-item-main>
+            </q-item>
+            <q-list highlight separator link>
+              <q-item
+                v-for="user in ingests.users"
+                :key="user.rtbfLogin"
+                v-close-overlay
+                highlight separator
+                @click.native="connectUser(user)"
+              >
+                <q-item-main>
+                  {{ user.firstName }} {{ user.lastName }} ({{ user.rtbfLogin }})
+                </q-item-main>
+              </q-item>
+            </q-list>
+            <!--
+            <q-list link separator class="scroll" style="min-width: 100px">
+              <q-item
+                v-for="n in 20"
+                :key="`a-${n}`"
+                v-close-overlay
+                @click.native="notify"
+              >
+                <q-item-main label="Label" sublabel="Click me" />
+              </q-item>
+            </q-list>
+            <q-list link style="min-width: 100px">
+              <q-item
+                v-for="user in ingests.users"
+                v-close-overlay
+                @click.native="notify"
+              >
+                {{ user.rtbfLogin }}
+              </q-item>
+            </q-list>
+            -->
+          </q-popover>
+        </q-btn>
+        <q-icon name="warning" color="negative" v-if="!ingests.socketConnection.imConnected" />
       </q-toolbar>
     </q-layout-header>
 
@@ -102,14 +151,27 @@
 </template>
 
 <script>
+import { mapState, mapGetters } from 'vuex'
+
 export default {
-  // name: 'LayoutName',
+  created () {
+    if (this.$socket.connected) { // Une fois que le coeur de l'appli est chargé, je vérifie si j'ai bien la connection socket
+      console.log('la connexion est établie')
+      this.$store.commit('ingests/SOCKET_CONNECT', true)
+    }
+  },
   data () {
     return {
-      leftDrawerOpen: true
+      leftDrawerOpen: true,
+      popoverOpen: false
     }
   },
   computed: {
+    ...mapState([]), // etco: j'importe tous les "states" de mes stores
+    ...mapGetters([]), // etco: j'importe tous les "getters" de mes stores
+    ingests () {
+      return this.$store.state.ingests
+    },
     totalRunningUploads () {
       var totalRunningUploads = 0
       if (this.$store.state.ingests.ingests.currentIngest.files) {
@@ -156,6 +218,25 @@ export default {
         }
       }
       return totalSucceededIngests
+    }
+  },
+  // Je définis ce qu'il faut faire quand je reçois des socket-messages du serveur
+  sockets: {
+    /*
+    connect: function () { // ne fonctionne pas toujours au démarrage de l'appli... je ne sais pas pourquoi. Mais c'est pour ça que j'ai mis un palliatif dans "created"
+      this.$store.commit('ingests/SOCKET_CONNECT', true)
+      console.log('socket connected')
+    },
+    disconnect: function () {
+      this.$store.commit('ingests/SOCKET_DISCONNECT', true)
+      console.log('socket disconnected')
+    }
+    */
+  },
+  methods: {
+    connectUser: function (user) {
+      // console.log('Je connecte le user ' + user.rtbfLogin)
+      this.$store.commit('ingests/connectUser', user)
     }
   }
 }

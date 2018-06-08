@@ -36,5 +36,19 @@ export default {
     running: [],
     success: [],
     error: []
-  }
+  },
+  socketConnection: {
+    imConnected: false,
+    peopleConnected: []
+  },
+  user: {
+    rtbfLogin: '',
+    firstName: '',
+    lastName: ''
+  },
+  contacts: [
+    {rtbfLogin: 'etco', firstName: 'Etienne', lastName: 'Convié'},
+    {rtbfLogin: 'vgu', firstName: 'Vincent', lastName: 'Gustin'},
+    {rtbfLogin: 'bbp', firstName: 'Benoit', lastName: 'Balon-Perin'}
+  ]
 }

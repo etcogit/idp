@@ -4,7 +4,7 @@ var mongoose = require('mongoose')
 
 var Schema = mongoose.Schema
 
-var userSchema = new Schema(
+var contactSchema = new Schema(
   {
     firstName: {type: String, required: true, max: 100, trim: true},
     lastName: {type: String, required: true, max: 100, trim: true},
@@ -52,19 +52,19 @@ var userSchema = new Schema(
   }
 )
 
-// Virtual for user's full name
-userSchema
+// Virtual for contact's full name
+contactSchema
   .virtual('fullName')
   .get(function () {
     return this.firstName + ' ' + this.lastName
   })
 
 // Virtual for author's URL
-userSchema
+contactSchema
   .virtual('url')
   .get(function () {
     return '/catalog/author/' + this._id
   })
 
-// Export function to create "users" model class
-module.exports = mongoose.model('users', userSchema)
+// Export function to create "contacts" model class
+module.exports = mongoose.model('contacts', contactSchema)

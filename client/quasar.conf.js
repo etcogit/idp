@@ -71,6 +71,7 @@ module.exports = function (ctx) {
         'QListHeader',
         'QPageContainer',
         'QPage',
+        'QPopover',
         'QProgress',
         'QRouteTab',
         'QScrollArea',
@@ -86,6 +87,7 @@ module.exports = function (ctx) {
         'QUploader'
       ],
       directives: [
+        'CloseOverlay',
         'Ripple'
       ],
       // Quasar plugins

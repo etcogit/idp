@@ -16,6 +16,10 @@ export const someMutation = (state) => {}
 */
 // Si je dois rajouter une propriété à mon state, mieux vaut préférer cette syntaxe:
 // state.obj = { ...state.obj, newProp: 123 }
+
+/* ///////////////////////////////////////////////////////////////
+state.ingests
+/////////////////////////////////////////////////////////////// */
 export const updateMyIngests = (state, myVariable) => {
   state.myIngests = myVariable
 }
@@ -36,4 +40,40 @@ export const currentIngestAddFile = (state, payload) => {
 }
 export const currentIngestUploadStatusUpdate = (state, value) => {
   state.ingests.currentIngest.ingestUploadStatus = value
+}
+
+/* ///////////////////////////////////////////////////////////////
+state.socketConnection
+/////////////////////////////////////////////////////////////// */
+// Le serveur m'informe que je suis connecté
+export const SOCKET_CONNECT = (state, value) => {
+  console.log('imConnected = true')
+  state.socketConnection.imConnected = true
+}
+// Le serveur m'informe que je suis déconnecté
+export const SOCKET_DISCONNECT = (state, value) => {
+  state.socketConnection.imConnected = false
+}
+/* ///////////////////////////////////////////////////////////////
+state.user
+/////////////////////////////////////////////////////////////// */
+export const connectUser = (state, value) => {
+  // console.log('connectUser')
+  state.user.rtbfLogin = value.rtbfLogin
+  state.user.firstName = value.firstName
+  state.user.lastName = value.lastName
+}
+
+/* ///////////////////////////////////////////////////////////////
+state.contact
+/////////////////////////////////////////////////////////////// */
+// Quand un contact a été inséré dans la DB le serveur me préviens et je mets à jour ma liste de contacts
+export const SOCKET_CONTACTCREATED = (state, value) => {
+  console.log('socket contact created')
+  // state.contacts.rtbfLogin = value.rtbfLogin
+  // state.contacts.firstName = value.firstName
+  // state.contacts.lastName = value.lastName
+  Object.keys(value).forEach(function (key) {
+    state.contacts[key] = value[key]
+  })
 }

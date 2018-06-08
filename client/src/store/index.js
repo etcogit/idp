@@ -1,9 +1,12 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
+import VueSocketio from 'vue-socket.io'
 
-import ingests from './ingests'
+import ingests from './ingests' // J'importe le store "ingest"
 
 Vue.use(Vuex)
+// Vue.use(VueSocketio, 'https://idp-etcocloud9.c9users.io:8081') // J'ouvre un tunnel avec le serveur dès le chargement de l'appli
+Vue.use(VueSocketio, 'https://idp-etcocloud9.c9users.io:8081', ingests)
 
 const store = new Vuex.Store({
   modules: {
