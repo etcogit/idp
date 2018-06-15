@@ -69,6 +69,7 @@ module.exports = function (ctx) {
         'QLayoutHeader',
         'QList',
         'QListHeader',
+        'QModal',
         'QPageContainer',
         'QPage',
         'QPopover',
@@ -84,6 +85,7 @@ module.exports = function (ctx) {
         'QTr',
         'QToolbar',
         'QToolbarTitle',
+        'QSearch',
         'QUploader'
       ],
       directives: [

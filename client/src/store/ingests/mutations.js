@@ -68,7 +68,7 @@ export const connectUser = (state, value) => {
 state.contact
 /////////////////////////////////////////////////////////////// */
 // Quand un contact a été inséré dans la DB le serveur me préviens et je mets à jour ma liste de contacts
-export const SOCKET_CONTACTCREATED = (state, value) => {
+export const SOCKET_CONTACT_CREATED = (state, value) => {
   console.log('socket contact created')
   // state.contacts.rtbfLogin = value.rtbfLogin
   // state.contacts.firstName = value.firstName

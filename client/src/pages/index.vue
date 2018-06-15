@@ -8,7 +8,19 @@
 </style>
 
 <script>
+import { mapActions } from 'vuex'
+
 export default {
-  name: 'PageIndex'
+  mounted () {
+    this.saveUserLog({})
+  },
+  methods: {
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    )
+  }
 }
 </script>

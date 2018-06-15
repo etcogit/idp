@@ -1,3 +1,4 @@
+// DB ///////////////////////////////////////
 const mongoose = require('mongoose')
 
 // Je me connecte à ma DB chez mlab.com:
@@ -15,52 +16,54 @@ db.once('open', function () {
 })
 
 var ContactModel = require('../models/contact')
+var UserLogModel = require('../models/userLogs')
 
+// SERVEUR HTTP ////////////////////////////
 var http = require('http')
-// Chargement du fichier index.html affiché au client
 var server = http.createServer(function (request, response) {})
 
+// SOCKET //////////////////////////////////
 // Chargement de socket.io
 var io = require('socket.io').listen(server)
 
 // Quand un client se connecte, on le note dans la console
 io.sockets.on('connection', function (socket) {
   console.log('Un client est connecté !')
-  socket.emit('connect', true)
+  socket.emit('socketConnect', true)
+
+  // En cas de déconnection
+  socket.on('disconnect', function () {
+    console.log('Client déconnecté')
+  })
 
   // Création d'un nouveau contact
   socket.on('createContact', function (payload) {
-    console.log('createContact = ' + payload.rtbfLogin)
-    /*
-    var contacts = new ContactModel({
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      rtbfLogin: payload.rtbfLogin
-    })
-    */
+    console.log('createContact = ' + JSON.stringify(payload))
     var contacts = new ContactModel()
-    contacts.rtbfLogin = payload.rtbfLogin
-    contacts.firstName = payload.firstName
-    contacts.lastName = payload.lastName
-    /*
-    user.find(function (err, users) {
-      if (err) return console.error(err)
-      console.log(users)
-      // res.send(users)
-    })
-    */
+    Object.assign(contacts, payload) // Je rajoute à contact le contenu de payload en respectant la structure de l'objet
+
     contacts.save(function (err) {
       if (err) { throw err }
       console.log('Contact ' + payload.rtbfLogin + ' ajouté avec succès !')
       // Avec "broadcast", je renvoie un payload à tous les autres clients connectés
-      socket.broadcast.emit('contactcreated', payload)
-      socket.emit('contactcreated', payload)
-      socket.emit('SOCKET_CONTACTCREATED', payload)
-      socket.emit('socket_contactCreated', payload)
-      socket.emit('contactCreated', payload)
+      // socket.emit('toto', payload)
+      // socket.broadcast.emit('contactcreated', payload)
+      // socket.emit('contactcreated', payload)
+      // socket.emit('SOCKET_CONTACTCREATED', payload)
+      socket.emit('socketContactCreated', payload)
     })
   })
 
+  // Récupération de tous les contacts
+  socket.on('getContacts', function () {
+    console.log('getContacts')
+
+    ContactModel.find({}, 'firstName lastName rtbfLogin', function (err, results) { // find(query, [fields], [options], callback)
+      if (err) return console.error(err)
+      socket.emit('socketContactList', results)
+    })
+  })
+  /*
   // Modification d'un utilisateur existant
   socket.on('updateUser', function (payload) {
     console.log('updateUser = ' + payload.rtbfLogin)
@@ -73,8 +76,22 @@ io.sockets.on('connection', function (socket) {
       socket.broadcast.emit('userUpdated', { login: payload.rtbfLogin })
     })
   })
+  */
+  // Enregistrement d'un userLog
+  socket.on('saveUserLog', function (payload) {
+    console.log('saveUserLog')
+    var userLog = new UserLogModel()
+    Object.assign(userLog, payload) // Je rajoute à userLog le contenu de payload en respectant la structure de l'objet
+
+    userLog.save(function (err) {
+      if (err) { throw err }
+      console.log('UserLog ajouté avec succès !')
+      socket.emit('socketUserLogSaved', payload)
+    })
+  })
 })
 
+// LET'S GO ///////////////////////////////////
 server.listen(8081)
 /*
 // console.log('hello')

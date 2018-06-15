@@ -22,8 +22,20 @@
 </template>
 
 <script>
+import { mapActions } from 'vuex'
+
 export default {
-  // name: 'PageName',
+  mounted () {
+    this.saveUserLog({})
+  },
+  methods: {
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    )
+  }
 }
 </script>
 

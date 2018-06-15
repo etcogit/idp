@@ -15,9 +15,11 @@
           IntraProd
           <span slot="subtitle">NUMPROD everywhere</span>
         </q-toolbar-title>
+        <!--
         <div>Uploading: {{totalRunningUploads}}</div>
         <div>&nbsp;-&nbsp;Ingesting: {{totalRunningIngests}}</div>
         <div>&nbsp;-&nbsp;Succeeded: {{totalSucceededIngests}}</div>
+        -->
         <!--
         <q-btn color="secondary">
           <q-icon name="directions" />
@@ -31,6 +33,7 @@
           flat
           icon="account_box"
         >
+          <!--
           <q-popover>
             <q-item>
               <q-item-main>
@@ -50,30 +53,10 @@
                 </q-item-main>
               </q-item>
             </q-list>
-            <!--
-            <q-list link separator class="scroll" style="min-width: 100px">
-              <q-item
-                v-for="n in 20"
-                :key="`a-${n}`"
-                v-close-overlay
-                @click.native="notify"
-              >
-                <q-item-main label="Label" sublabel="Click me" />
-              </q-item>
-            </q-list>
-            <q-list link style="min-width: 100px">
-              <q-item
-                v-for="user in ingests.users"
-                v-close-overlay
-                @click.native="notify"
-              >
-                {{ user.rtbfLogin }}
-              </q-item>
-            </q-list>
-            -->
           </q-popover>
+          -->
         </q-btn>
-        <q-icon name="warning" color="negative" v-if="!ingests.socketConnection.imConnected" />
+        <q-icon name="warning" color="negative" v-if="!socketConnected" />
       </q-toolbar>
     </q-layout-header>
 
@@ -147,18 +130,21 @@
       <router-view />
     </q-page-container>
 
+    <q-modal v-model="!isUserConnected" :content-css="{padding: '50px', minWidth: '50vw'}">
+      <div class="q-display-1 q-mb-md">Basic Modal</div>
+      <p>Scroll down to close</p>
+      <!-- <q-btn color="primary" @click="userConnected = false" label="Close" /> -->
+    </q-modal>
+
   </q-layout>
 </template>
 
 <script>
-import { mapState, mapGetters } from 'vuex'
+import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
 export default {
-  created () {
-    if (this.$socket.connected) { // Une fois que le coeur de l'appli est chargé, je vérifie si j'ai bien la connection socket
-      console.log('la connexion est établie')
-      this.$store.commit('ingests/SOCKET_CONNECT', true)
-    }
+  mounted () {
+    // this.saveUserLog({})
   },
   data () {
     return {
@@ -167,11 +153,22 @@ export default {
     }
   },
   computed: {
-    ...mapState([]), // etco: j'importe tous les "states" de mes stores
-    ...mapGetters([]), // etco: j'importe tous les "getters" de mes stores
+    ...mapState(
+      'globalModule',
+      [
+        'socketConnected',
+        'userConnected'
+      ]
+    ),
+    ...mapGetters(
+      'globalModule', ['isUserConnected']
+    )
+    /*
     ingests () {
       return this.$store.state.ingests
     },
+    */
+    /*
     totalRunningUploads () {
       var totalRunningUploads = 0
       if (this.$store.state.ingests.ingests.currentIngest.files) {
@@ -219,24 +216,64 @@ export default {
       }
       return totalSucceededIngests
     }
-  },
-  // Je définis ce qu'il faut faire quand je reçois des socket-messages du serveur
-  sockets: {
-    /*
-    connect: function () { // ne fonctionne pas toujours au démarrage de l'appli... je ne sais pas pourquoi. Mais c'est pour ça que j'ai mis un palliatif dans "created"
-      this.$store.commit('ingests/SOCKET_CONNECT', true)
-      console.log('socket connected')
-    },
-    disconnect: function () {
-      this.$store.commit('ingests/SOCKET_DISCONNECT', true)
-      console.log('socket disconnected')
-    }
     */
   },
   methods: {
-    connectUser: function (user) {
-      // console.log('Je connecte le user ' + user.rtbfLogin)
-      this.$store.commit('ingests/connectUser', user)
+    ...mapMutations(
+      'contactModule',
+      [
+        'getContacts',
+        'addContactToList',
+        'deleteContactOfTempMemory'
+      ]
+    ),
+    ...mapMutations(
+      'userModule',
+      [
+        'getUserLogs',
+        'addUserLogToList',
+        'deleteUserLogOfTempMemory'
+      ]
+    ),
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    )
+  },
+  // Je définis ce qu'il faut faire quand je reçois des socket-messages du serveur
+  sockets: {
+    // Quand j'obtiens une connexion socket avec le serveur
+    connect: function () {
+      console.log('idp_home.vue/connect')
+      // Je modifie une variable de mon state pour pouvoir afficher mon statut de connexion
+      this.$store.commit('globalModule/socketConnect', true)
+    },
+    // Quand je perds la connexion socket avec le serveur
+    disconnect: function () {
+      console.log('idp_home.vue/disconnect')
+      // Je modifie une variable de mon state pour pouvoir afficher mon statut de connexion
+      this.$store.commit('globalModule/socketConnect', false)
+    },
+    // Quand un contact est créé, je notifie l'utilisateur, je rajoute le contact à la liste locale et je nettoie mon state temporaire
+    socketContactCreated (newContact) {
+      this.addContactToList(newContact)
+      this.deleteContactOfTempMemory(newContact)
+      this.$q.notify({
+        message: newContact.firstName + ' ' + newContact.lastName + ' (' + newContact.rtbfLogin + ') vient d\'être ajouté',
+        type: 'positive'
+      })
+    },
+    // Quand le serveur m'envoie la liste des contacts
+    socketContactList (contacts) {
+      this.getContacts(contacts)
+    },
+    // Quand un userLog est enregistré dans la DB, je nettoie mon state temporaire
+    socketUserLogSaved (userLog) {
+      console.log('idp_home.vue/socketUserLogSaved: ' + JSON.stringify(userLog))
+      this.addUserLogToList(userLog)
+      this.deleteUserLogOfTempMemory(userLog)
     }
   }
 }

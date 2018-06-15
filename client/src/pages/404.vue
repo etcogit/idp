@@ -14,3 +14,21 @@
     >Go back</q-btn>
   </div>
 </template>
+
+<script>
+import { mapActions } from 'vuex'
+
+export default {
+  mounted () {
+    this.saveUserLog({frontendErrorMessage: '404 Page not found'})
+  },
+  methods: {
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    )
+  }
+}
+</script>

@@ -2,17 +2,23 @@
   <q-page padding>
     <!-- content -->
     idpIngestRec
-    <div>{{ myComputedData }}</div>
   </q-page>
 </template>
 
 <script>
+import { mapActions } from 'vuex'
+
 export default {
-  // name: 'PageName',
-  computed: {
-    myComputedData () {
-      return this.$store.state.ingests.myIngests
-    }
+  mounted () {
+    this.saveUserLog({})
+  },
+  methods: {
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    )
   }
 }
 </script>

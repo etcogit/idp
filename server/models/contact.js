@@ -9,7 +9,6 @@ var contactSchema = new Schema(
     firstName: {type: String, required: true, max: 100, trim: true},
     lastName: {type: String, required: true, max: 100, trim: true},
     birthDate: {type: Date},
-    createdDate: {type: Date, default: Date.now},
     sourceDb: {type: String, required: true, default: 'Intraprod', enum: ['OptiTime', 'Whats\'On', 'Intraprod', 'Info360']},
     sourceID: {type: String}, // L'identifiant unique de cette ressource dans la DB externe
     rtbfLogin: {type: String, required: true, max: 10, trim: true, unique: true},
@@ -48,9 +47,13 @@ var contactSchema = new Schema(
         newActivityToday: [{type: String}], // quand on affecte une activité à une personne
         embedOfficeNotifications: {type: Boolean, default: false}
       }
-    }
+    },
+    createdBy: {type: Schema.ObjectId, ref: 'contact', required: true}
   }
 )
+
+// J'ajoute des options
+contactSchema.set('timestamps', true) // Cette option rajoute 2 champs: createdAt et updatedAt
 
 // Virtual for contact's full name
 contactSchema

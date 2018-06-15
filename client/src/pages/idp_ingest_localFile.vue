@@ -243,6 +243,9 @@ export default {
     // this.$socket.on('connect', () => { console.log('Je suis connecté') })
   },
   // Je définis ce qu'il faut faire quand je reçois des socket-messages du serveur
+  mounted () {
+    this.saveUserLog({})
+  },
   sockets: {
     /*
     connect: function () {
@@ -523,7 +526,12 @@ export default {
     }
   },
   methods: {
-    ...mapActions([]), // etco: j'importe toutes les "actions" de mes stores
+    ...mapActions(
+      'userModule',
+      [
+        'saveUserLog'
+      ]
+    ), // etco: j'importe toutes les "actions" de mes stores
     /*
     createUser () {
       console.log('createUser fired')
