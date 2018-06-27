@@ -1,7 +1,8 @@
 export const isUserConnected = (state) => {
-  if (state.userConnected.hasOwnProperty('id')) {
-    return true
-  } else {
+  console.log('globalModule/getters.js/isUserConnected: ')
+  if (state.userConnected.hasOwnProperty('_id')) {
     return false
+  } else {
+    return true
   }
 }

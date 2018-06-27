@@ -2,15 +2,9 @@ import { Platform } from 'quasar'
 
 export default {
   socketConnected: false,
-  isUserConnected: false,
   userConnected: {},
-  /*
-  userConnected: {
-    firstName: 'Etienne',
-    lastName: 'Convié',
-    rtbfLogin: 'etco',
-    _id: '5b21935fff93368fc2cad877'
-  },
-  */
-  platform: Platform
+  userPlatform: Platform,
+  // Liste des logs du user connecté dont l'insertion en DB n'a pas été confirmée
+  tempLogs: [],
+  jsonDebug: null
 }

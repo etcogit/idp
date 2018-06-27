@@ -12,13 +12,13 @@ import { mapActions } from 'vuex'
 
 export default {
   mounted () {
-    this.saveUserLog({})
+    this.saveLogAction({})
   },
   methods: {
     ...mapActions(
-      'userModule',
+      'globalModule',
       [
-        'saveUserLog'
+        'saveLogAction'
       ]
     )
   }

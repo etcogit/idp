@@ -5,7 +5,8 @@ module.exports = function (ctx) {
     // app plugins (/src/plugins)
     plugins: [
       'i18n',
-      'axios'
+      'axios',
+      'appConfig'
     ],
     css: [
       'app.styl'
@@ -46,7 +47,9 @@ module.exports = function (ctx) {
     // framework: 'all' --- includes everything; for dev only!
     framework: {
       components: [
+        'QAutocomplete',
         'QBtn',
+        'QBtnDropdown',
         'QCard',
         'QCardTitle',
         'QCardMain',
@@ -55,6 +58,7 @@ module.exports = function (ctx) {
         'QCardActions',
         'QCheckbox',
         'QChip',
+        'QDatetime',
         'QField',
         'QIcon',
         'QInput',
@@ -83,6 +87,7 @@ module.exports = function (ctx) {
         'QTd',
         'QTh',
         'QTr',
+        'QTree',
         'QToolbar',
         'QToolbarTitle',
         'QSearch',

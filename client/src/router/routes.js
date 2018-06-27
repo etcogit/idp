@@ -119,6 +119,10 @@ export default [
           {
             path: 'platform',
             component: () => import('pages/idp_monitoring_platform')
+          },
+          {
+            path: 'logsIntraprod',
+            component: () => import('pages/idp_monitoring_logsIntraprod')
           }
         ]
       },

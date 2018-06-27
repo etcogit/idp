@@ -244,7 +244,7 @@ export default {
   },
   // Je définis ce qu'il faut faire quand je reçois des socket-messages du serveur
   mounted () {
-    this.saveUserLog({})
+    this.saveLogAction({})
   },
   sockets: {
     /*
@@ -527,9 +527,9 @@ export default {
   },
   methods: {
     ...mapActions(
-      'userModule',
+      'globalModule',
       [
-        'saveUserLog'
+        'saveLogAction'
       ]
     ), // etco: j'importe toutes les "actions" de mes stores
     /*

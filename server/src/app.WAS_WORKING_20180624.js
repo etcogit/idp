@@ -19,129 +19,26 @@ var ContactModel = require('../models/contact')
 var LogModel = require('../models/logs')
 
 // SERVEUR HTTP ////////////////////////////
-// var http = require('http')
-// var server = http.createServer(function (request, response) {})
-var app = require('express')()
-var cors = require('cors')
-var bodyParser = require('body-parser')
-var http = require('http').Server(app)
-
-app.use(cors())
-app.use(bodyParser.json()) // for parsing application/json
-app.use(bodyParser.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
-
-// REST API //////////////////////////////////
-app.get('/', function (req, res) {
-  res.send('<h1>Hello World</h1>')
-})
-
-app.post('/getContacts', function (req, res) {
-  console.log('REST: getContacts: ' + JSON.stringify(req.body))
-
-  ContactModel
-    .find(req.body.conditions, req.body.fields)
-    .limit(req.body.limit)
-    .sort(req.body.sort)
-    .exec(function (err, results) {
-      if (err) return console.error(err)
-      // socket.emit('socketContactList', results)
-      res.send(results)
-      // console.log(JSON.stringify(results))
-    })
-})
-
-app.post('/getLogs', function (req, res) {
-  console.log('REST: getLogs: ' + JSON.stringify(req.body))
-
-  // Cette requête cherche le dernier log pour chaque "socketId"
-  LogModel.aggregate(
-    [
-      // Je cherche uniquement les documents dont le 'userRtbfLogin' est untel et dont le socketId n'est pas celui de la connexion en cours
-      // { $match: { userRtbfLogin: req.body.userId, socketId: { $ne: req.body.socketId } } },
-      { $match: { userRtbfLogin: req.body.userRtbfLogin, socketId: { $ne: req.body.socketId } } },
-      // Je trie par ordre de 'frontendTimeStamp' décroissant
-      { $sort: { frontendTimeStamp: -1 } },
-      // Je groupe les résultats par 'userPlatform' -> ce qui me donne donc le dernier log de tel user sur telle plateforme
-      {
-        $group:
-          {
-            _id: {
-              userPlatform: '$userPlatform'
-            },
-            // Ci-dessous je dis qu'il faut mettre dans une clé 'record' le contenu complet du document
-            'record': { $first: '$$ROOT' }
-          }
-      },
-      // Optionnel: permet de ne sélectionner que certains champs dans le résultat de la requête
-      {$project: { 'socketId': '$record.socketId', 'frontendTimeStamp': '$record.frontendTimeStamp' }}
-    ], function (err, result) {
-      if (err) {
-        console.log(err)
-        return
-      }
-      console.log(result)
-    }
-  )
-  /*
-  LogModel.aggregate(
-    [
-      { $match: { userRtbfLogin: 'etco' } },
-      { $sort: { frontendTimeStamp: -1 } },
-      {
-        $group:
-          {
-            _id: {
-              userPlatform: '$userPlatform'
-            },
-            lastLogDate: { $last: '$frontendTimeStamp' },
-            'record': { $first: '$$ROOT' }
-          }
-      }
-    ], function (err, result) {
-      if (err) {
-        console.log(err)
-        return
-      }
-      console.log(result)
-    }
-  )
-  */
-  /*
-  LogModel
-    .find(req.body.conditions, req.body.fields)
-    .limit(req.body.limit)
-    .sort(req.body.sort)
-    .exec(function (err, results) {
-      if (err) return console.error(err)
-      // socket.emit('socketContactList', results)
-      res.send(results)
-      // console.log(JSON.stringify(results))
-    })
-  */
-})
+var http = require('http')
+var server = http.createServer(function (request, response) {})
 
 // SOCKET //////////////////////////////////
 // Chargement de socket.io
-// var io = require('socket.io').listen(server)
-var io = require('socket.io')(http)
+var io = require('socket.io').listen(server)
 
 // Quand un client se connecte, on le note dans la console
 io.sockets.on('connection', function (socket) {
-  console.log('SOCKET: Un client est connecté !')
-  var userIpAddress = socket.request.connection.remoteAddress
-  // var userIpAddress = socket.request.connection._peername
-  // var userIpAddress = socket.handshake.address
-  // console.log(userIpAddress)
+  console.log('Un client est connecté !')
   socket.emit('socketConnect', true)
 
   // En cas de déconnection
   socket.on('disconnect', function () {
-    console.log('SOCKET: Client déconnecté')
+    console.log('Client déconnecté')
   })
 
   // Création d'un nouveau contact
   socket.on('createContact', function (payload) {
-    console.log('SOCKET: createContact = ' + JSON.stringify(payload))
+    console.log('createContact = ' + JSON.stringify(payload))
     var contacts = new ContactModel()
     Object.assign(contacts, payload) // Je rajoute à contact le contenu de payload en respectant la structure de l'objet
 
@@ -159,7 +56,7 @@ io.sockets.on('connection', function (socket) {
 
   // Récupération de tous les contacts
   socket.on('getContacts', function (payload) {
-    console.log('SOCKET: getContacts: ' + JSON.stringify(payload))
+    console.log('getContacts: ' + JSON.stringify(payload))
 
     ContactModel
       .find(payload.conditions, payload.fields)
@@ -193,8 +90,7 @@ io.sockets.on('connection', function (socket) {
   */
   // Enregistrement d'un userLog
   socket.on('saveLogAction', function (payload) {
-    console.log('SOCKET: saveLogAction')
-    payload.userIpAddress = userIpAddress
+    console.log('saveLogAction')
     var log = new LogModel()
     Object.assign(log, payload) // Je rajoute à userLog le contenu de payload en respectant la structure de l'objet
 
@@ -207,23 +103,21 @@ io.sockets.on('connection', function (socket) {
 
   // Récupération de logs
   socket.on('getLogs', function (payload) {
-    console.log('SOCKET: getLogs: ' + JSON.stringify(payload))
+    console.log('getLogs: ' + JSON.stringify(payload))
 
     LogModel
-      .find(payload.conditions, payload.fields)
+      .find(payload.conditions)
       .limit(payload.limit)
       .sort(payload.sort)
       .exec(function (err, results) {
         if (err) return console.error(err)
         socket.emit('socketLogsList', results)
-        // console.log(results)
       })
   })
 })
 
 // LET'S GO ///////////////////////////////////
-http.listen(8081)
-// server.listen(8081)
+server.listen(8081)
 /*
 // console.log('hello')
 const express = require('express')

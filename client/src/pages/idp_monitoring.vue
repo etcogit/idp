@@ -27,6 +27,12 @@
         to="/idp/monitoring/platform"
         label="Plateforme"
       />
+      <q-route-tab
+        slot="title"
+        icon=""
+        to="/idp/monitoring/logsIntraprod"
+        label="Logs Intraprod"
+      />
     </q-tabs>
     <!-- This is where pages get injected -->
     <router-view />
@@ -38,13 +44,13 @@ import { mapActions } from 'vuex'
 
 export default {
   mounted () {
-    this.saveUserLog({})
+    this.saveLogAction({})
   },
   methods: {
     ...mapActions(
-      'userModule',
+      'globalModule',
       [
-        'saveUserLog'
+        'saveLogAction'
       ]
     )
   }

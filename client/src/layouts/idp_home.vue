@@ -33,13 +33,21 @@
           flat
           icon="account_box"
         >
-          <!--
           <q-popover>
             <q-item>
               <q-item-main>
-                Connected User:<br /> {{ ingests.user.firstName }} {{ ingests.user.lastName }} ({{ ingests.user.rtbfLogin }})
+                <q-item-tile label>{{ userConnected.firstName }} {{ userConnected.lastName }}</q-item-tile>
+                <q-item-tile sublabel>{{ userConnected.rtbfLogin }}@rtbf.be</q-item-tile>
               </q-item-main>
             </q-item>
+            <q-item-separator />
+            <q-item>
+              <q-item-main>
+                <q-btn v-close-overlay :no-wrap="true" icon="exit_to_app" label="Me déconnecter" @click.native="disconnectUserAction" />
+              </q-item-main>
+            </q-item>
+
+            <!--
             <q-list highlight separator link>
               <q-item
                 v-for="user in ingests.users"
@@ -53,10 +61,11 @@
                 </q-item-main>
               </q-item>
             </q-list>
+            -->
           </q-popover>
-          -->
         </q-btn>
         <q-icon name="warning" color="negative" v-if="!socketConnected" />
+        <q-icon name="warning" color="positive" v-if="$socket.disconnected" />
       </q-toolbar>
     </q-layout-header>
 
@@ -130,10 +139,30 @@
       <router-view />
     </q-page-container>
 
-    <q-modal v-model="!isUserConnected" :content-css="{padding: '50px', minWidth: '50vw'}">
-      <div class="q-display-1 q-mb-md">Basic Modal</div>
-      <p>Scroll down to close</p>
-      <!-- <q-btn color="primary" @click="userConnected = false" label="Close" /> -->
+    <!-- <q-modal v-if="!$store.isUserConnected" :content-css="{padding: '50px', minWidth: '50vw'}"> -->
+    <q-modal
+      v-model="isUserConnected"
+      :content-css="{padding: '50px', minWidth: '50vw'}"
+      :no-route-dismiss="true"
+      :no-esc-dismiss="true"
+      :no-backdrop-dismiss="true"
+    >
+      <div class="q-display-1 q-mb-md">Auto-login ;-)</div>
+      <q-search v-model="terms" autofocus="true" placeholder="qui es-tu ?">
+        <!--
+        <q-autocomplete
+          :static-data="{field: 'rtbfLogin', list: dbContacts.results}"
+          @selected="connectUserAction"
+          @hide="terms=''"
+        />
+        -->
+        <q-autocomplete
+          :debounce="500"
+          @selected="connectUserAction"
+          @hide="terms=''"
+          @search="loginAutocompleteSearch"
+        />
+      </q-search>
     </q-modal>
 
   </q-layout>
@@ -143,13 +172,17 @@
 import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
 export default {
+  created () {
+    this.$axios.defaults.baseURL = this.$appConfig.restApiUrl // Je configure $axios avec les paramètres définis par défaut dans $appConfig
+  },
   mounted () {
-    // this.saveUserLog({})
+    this.saveLogAction({})
   },
   data () {
     return {
       leftDrawerOpen: true,
-      popoverOpen: false
+      popoverOpen: false,
+      terms: ''
     }
   },
   computed: {
@@ -160,6 +193,22 @@ export default {
         'userConnected'
       ]
     ),
+    /*
+    ...mapState(
+      'contactModule',
+      [
+        'contacts'
+      ]
+    ),
+    */
+    ...mapState(
+      'dbModule',
+      [
+        'dbContacts',
+        'dbUsersForAutocomplete'
+      ]
+    ),
+    // ...mapGetters([])
     ...mapGetters(
       'globalModule', ['isUserConnected']
     )
@@ -219,26 +268,87 @@ export default {
     */
   },
   methods: {
+    loginAutocompleteSearch (terms, done) {
+      console.log('idp_home.vue/search: ' + terms)
+      // make an AJAX call
+      // then call done(Array results)
+      // Je construis ma requête
+      let query = {
+        conditions: {
+          $or: [
+            {rtbfLogin: {$regex: terms, $options: 'i'}},
+            {firstName: {$regex: terms, $options: 'i'}},
+            {lastName: {$regex: terms, $options: 'i'}}
+          ]
+        },
+        fields: 'rtbfLogin firstName lastName',
+        limit: 10
+      }
+      // console.log(query)
+      // Je cherche la liste des contacts pour les charger dans la dropdown de connexion
+      this.$axios.post('/getContacts', query)
+        .then((response) => {
+          let results = []
+          for (var i = 0; i < response.data.length; i++) {
+            results.push({
+              // stringToSearchFor: data.firstName + ' ' + data.lastName + ' ' + data.rtbfLogin,
+              // stringToSearchFor: response.data[i].rtbfLogin,
+              value: response.data[i],
+              label: response.data[i].firstName + ' ' + response.data[i].lastName,
+              sublabel: response.data[i].rtbfLogin + '@rtbf.be',
+              icon: 'person'
+            })
+          }
+          done(results)
+          // console.log(results)
+        })
+        .catch(() => {
+          this.$q.notify({
+            color: 'negative',
+            position: 'top',
+            message: 'Loading failed',
+            icon: 'report_problem'
+          })
+          done([])
+        })
+      // DO NOT forget to call done! When no results or an error occurred,
+      // just call with empty array as param. Example: done([])
+    },
     ...mapMutations(
       'contactModule',
       [
-        'getContacts',
-        'addContactToList',
-        'deleteContactOfTempMemory'
+        // 'addContactToListMutation',
+        'deleteContactOfTempMemoryMutation'
       ]
     ),
     ...mapMutations(
-      'userModule',
+      'globalModule',
       [
-        'getUserLogs',
-        'addUserLogToList',
-        'deleteUserLogOfTempMemory'
+        // 'addLogToListMutation',
+        'deleteLogOfTempMemoryMutation'
+      ]
+    ),
+    ...mapMutations(
+      'dbModule',
+      [
+        'keepDbContactsMutation',
+        'keepDbLogsMutation',
+        'keepDbUsersForAutocompleteMutation'
       ]
     ),
     ...mapActions(
-      'userModule',
+      'globalModule',
       [
-        'saveUserLog'
+        'saveLogAction',
+        'connectUserAction',
+        'disconnectUserAction'
+      ]
+    ),
+    ...mapActions(
+      'dbModule',
+      [
+        'keepDbLogsAction',
+        'getContactsAction'
       ]
     )
   },
@@ -258,8 +368,10 @@ export default {
     },
     // Quand un contact est créé, je notifie l'utilisateur, je rajoute le contact à la liste locale et je nettoie mon state temporaire
     socketContactCreated (newContact) {
-      this.addContactToList(newContact)
-      this.deleteContactOfTempMemory(newContact)
+      console.log('idp_home.vue/socketContactCreated')
+      // this.addContactToListMutation(newContact)
+      this.keepDbContactsMutation(newContact)
+      this.deleteContactOfTempMemoryMutation(newContact)
       this.$q.notify({
         message: newContact.firstName + ' ' + newContact.lastName + ' (' + newContact.rtbfLogin + ') vient d\'être ajouté',
         type: 'positive'
@@ -267,13 +379,27 @@ export default {
     },
     // Quand le serveur m'envoie la liste des contacts
     socketContactList (contacts) {
-      this.getContacts(contacts)
+      console.log('idp_home.vue/socketContactList')
+      // Je sauvegarde la liste des contacts
+      this.keepDbContactsMutation(contacts)
+      // Je dois mapper la liste dbContacts pour qu'elle corresponde aux critères de l'autocomplete
+      if (this.dbContacts.results.length === 0) {
+        for (var i = 0; i < contacts.length; i++) {
+          this.keepDbUsersForAutocompleteMutation(contacts[i])
+        }
+      }
     },
     // Quand un userLog est enregistré dans la DB, je nettoie mon state temporaire
-    socketUserLogSaved (userLog) {
-      console.log('idp_home.vue/socketUserLogSaved: ' + JSON.stringify(userLog))
-      this.addUserLogToList(userLog)
-      this.deleteUserLogOfTempMemory(userLog)
+    socketLogSaved (userLog) {
+      console.log('idp_home.vue/socketLogSaved: ') //  + JSON.stringify(userLog)
+      this.keepDbLogsMutation(userLog)
+      this.deleteLogOfTempMemoryMutation(userLog)
+    },
+    // Quand le serveur m'envoie la liste des logs
+    socketLogsList (data) {
+      console.log('idp_home.vue/socketLogsList')
+      // Je sauvegarde la liste des logs
+      this.keepDbLogsAction(data)
     }
   }
 }

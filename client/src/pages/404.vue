@@ -20,13 +20,13 @@ import { mapActions } from 'vuex'
 
 export default {
   mounted () {
-    this.saveUserLog({frontendErrorMessage: '404 Page not found'})
+    this.saveLogAction({frontendErrorMessage: '404 Page not found'})
   },
   methods: {
     ...mapActions(
-      'userModule',
+      'globalModule',
       [
-        'saveUserLog'
+        'saveLogAction'
       ]
     )
   }
