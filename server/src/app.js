@@ -36,7 +36,8 @@ app.get('/', function (req, res) {
 })
 
 app.post('/getContacts', function (req, res) {
-  console.log('REST: getContacts: ' + JSON.stringify(req.body))
+  // console.log('REST: getContacts: ' + JSON.stringify(req.body))
+  console.log('REST: getContacts: ')
 
   ContactModel
     .find(req.body.conditions, req.body.fields)
@@ -50,14 +51,15 @@ app.post('/getContacts', function (req, res) {
     })
 })
 
-app.post('/getLogs', function (req, res) {
+app.post('/getLastSessions', function (req, res) {
   console.log('REST: getLogs: ' + JSON.stringify(req.body))
 
-  // Cette requête cherche le dernier log pour chaque "socketId"
+  // Cette requête cherche les dernières sessions sur chaque plateforme d'un user en excluant la session en cours
   LogModel.aggregate(
     [
       // Je cherche uniquement les documents dont le 'userRtbfLogin' est untel et dont le socketId n'est pas celui de la connexion en cours
       // { $match: { userRtbfLogin: req.body.userId, socketId: { $ne: req.body.socketId } } },
+      // Je devrais pouvoir faire ma requete sur le userId plutôt que sur le userRtbfLogin, mais ça ne fonctionne pas...
       { $match: { userRtbfLogin: req.body.userRtbfLogin, socketId: { $ne: req.body.socketId } } },
       // Je trie par ordre de 'frontendTimeStamp' décroissant
       { $sort: { frontendTimeStamp: -1 } },
@@ -68,18 +70,29 @@ app.post('/getLogs', function (req, res) {
             _id: {
               userPlatform: '$userPlatform'
             },
+            // Je m'assure de récupérer le document le plus récent du groupe -> le $sort ci-dessus ne suffit pas
+            lastLogDate: { $last: '$frontendTimeStamp' },
             // Ci-dessous je dis qu'il faut mettre dans une clé 'record' le contenu complet du document
             'record': { $first: '$$ROOT' }
           }
       },
       // Optionnel: permet de ne sélectionner que certains champs dans le résultat de la requête
-      {$project: { 'socketId': '$record.socketId', 'frontendTimeStamp': '$record.frontendTimeStamp' }}
-    ], function (err, result) {
+      {$project: {
+        _id: 0,
+        'socketId': '$record.socketId',
+        'frontendTimeStamp': '$record.frontendTimeStamp',
+        'route': '$record.route',
+        'logId': '$record._id',
+        'frontendAction': '$record.frontendAction',
+        'userPlatform': '$record.userPlatform'
+      }}
+    ], function (err, results) {
       if (err) {
         console.log(err)
         return
       }
-      console.log(result)
+      // console.log(results)
+      res.send(results)
     }
   )
   /*
@@ -118,6 +131,18 @@ app.post('/getLogs', function (req, res) {
       // console.log(JSON.stringify(results))
     })
   */
+})
+
+app.post('/getSession', function (req, res) {
+  console.log('REST: getSession: ' + JSON.stringify(req.body))
+
+  LogModel
+    .find(req.body.conditions)
+    .exec(function (err, results) {
+      if (err) return console.error(err)
+      res.send(results)
+      // console.log(JSON.stringify(results))
+    })
 })
 
 // SOCKET //////////////////////////////////

@@ -19,6 +19,26 @@ export default ({ app, router, Vue }) => {
       contacts: {
         maxLimitResults: 100
       }
+    },
+    promptPreviousSessions: {
+      title: 'Continuer la session précédente ?'
+    },
+    modalUserConnection: {
+      title: 'Auto-login ;-)',
+      placeholder: 'qui es-tu ?'
+    },
+    idp_home: {
+      toolbar: {
+        title: 'IntraProd',
+        subtitle: 'NUMPROD everywhere',
+        icon: 'menu',
+        help: {
+          icon: 'help_outline'
+        }
+      },
+      leftDrawer: {
+        listHeader: 'Outils'
+      }
     }
   }
 }

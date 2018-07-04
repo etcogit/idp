@@ -8,26 +8,88 @@
           flat
           round
           dense
-          icon="menu"
+          :icon="$appConfig.idp_home.toolbar.icon"
           @click="leftDrawerOpen = !leftDrawerOpen"
         />
         <q-toolbar-title>
-          IntraProd
-          <span slot="subtitle">NUMPROD everywhere</span>
+          {{ $appConfig.idp_home.toolbar.title }}
+          <span slot="subtitle">{{ $appConfig.idp_home.toolbar.subtitle }}</span>
         </q-toolbar-title>
         <!--
         <div>Uploading: {{totalRunningUploads}}</div>
         <div>&nbsp;-&nbsp;Ingesting: {{totalRunningIngests}}</div>
         <div>&nbsp;-&nbsp;Succeeded: {{totalSucceededIngests}}</div>
         -->
-        <!--
-        <q-btn color="secondary">
-          <q-icon name="directions" />
-          <q-popover v-model="popover">
-            <div>tototititututata</div>
+        <!-- HELP -->
+        <q-btn-dropdown
+          color="purple"
+          split
+          label="X collègues ont besoin d'aide"
+        >
+          <!-- dropdown content -->
+          <q-list link>
+            <q-item>
+              <q-item-main>
+                <q-item-tile label>Je veux bien aider</q-item-tile>
+              </q-item-main>
+            </q-item>
+            <q-item>
+              <q-item-main>
+                <q-item-tile label>Pas maintenant</q-item-tile>
+              </q-item-main>
+            </q-item>
+          </q-list>
+        </q-btn-dropdown>
+        <q-btn
+          dense
+          flat
+          :icon="$appConfig.idp_home.toolbar.help.icon"
+        >
+          <q-popover>
+
+            <!--
+            <q-list highlight separator link>
+              <q-item
+                v-for="user in ingests.users"
+                :key="user.rtbfLogin"
+                v-close-overlay
+                highlight separator
+                @click.native="connectUser(user)"
+              >
+                <q-item-main>
+                  {{ user.firstName }} {{ user.lastName }} ({{ user.rtbfLogin }})
+                </q-item-main>
+              </q-item>
+            </q-list>
+            -->
+            <q-item
+              v-close-overlay
+              highlight separator
+              @click="helpNeededAction"
+            >
+              <q-item-main>
+                <q-item-tile label>Demander de l'aide aux utilisateurs connectés</q-item-tile>
+              </q-item-main>
+            </q-item>
+            <q-item
+              v-close-overlay
+              highlight separator
+            >
+              <q-item-main>
+                <q-item-tile label>Consulter la documentation liée à cette page</q-item-tile>
+              </q-item-main>
+            </q-item>
+            <q-item
+              v-close-overlay
+              highlight separator
+            >
+              <q-item-main>
+                <q-item-tile label>Questions fréquentes liées à cette page</q-item-tile>
+              </q-item-main>
+            </q-item>
           </q-popover>
         </q-btn>
-        -->
+        <!-- ME -->
         <q-btn
           dense
           flat
@@ -64,8 +126,9 @@
             -->
           </q-popover>
         </q-btn>
-        <q-icon name="warning" color="negative" v-if="!socketConnected" />
-        <q-icon name="warning" color="positive" v-if="$socket.disconnected" />
+        <!-- CONNECTION STATUS -->
+        <!-- <q-icon name="warning" color="negative" v-if="!socketConnected" /> -->
+        <q-icon name="warning" color="negative" v-if="$socket.disconnected" />
       </q-toolbar>
     </q-layout-header>
 
@@ -76,17 +139,17 @@
           flat
           round
           dense
-          icon="menu"
+          :icon="$appConfig.idp_home.toolbar.icon"
           @click="leftDrawerOpen = !leftDrawerOpen"
         />
         <q-toolbar-title>
-          Intraprod
-          <span slot="subtitle">NUMPROD everywhere</span>
+          {{ $appConfig.idp_home.toolbar.title }}
+          <span slot="subtitle">{{ $appConfig.idp_home.toolbar.subtitle }}</span>
         </q-toolbar-title>
       </q-toolbar>
     </q-layout-footer>
 
-    <!-- (Optional) A Drawer; you can add one more with side="right" or change this one's side -->
+    <!-- TIROIR DE GAUCHE -->
     <q-layout-drawer
       side="left"
       v-model="leftDrawerOpen"
@@ -96,7 +159,7 @@
         no-border
         link
       >
-        <q-list-header>Outils</q-list-header>
+        <q-list-header>{{ $appConfig.idp_home.leftDrawer.listHeader }}</q-list-header>
         <q-item to="/idp" exact>
           <q-item-side icon="home" />
           <q-item-main label="Accueil" />
@@ -133,7 +196,13 @@
         </q-item>
       </q-list>
     </q-layout-drawer>
-
+    <!-- TIROIR DE DROITE -->
+    <q-layout-drawer
+      side="right"
+      v-model="rightDrawerOpen"
+      :content-class="$q.theme === 'mat' ? 'bg-grey-2' : null"
+    >
+    </q-layout-drawer>
     <q-page-container>
       <!-- This is where pages get injected -->
       <router-view />
@@ -147,8 +216,8 @@
       :no-esc-dismiss="true"
       :no-backdrop-dismiss="true"
     >
-      <div class="q-display-1 q-mb-md">Auto-login ;-)</div>
-      <q-search v-model="terms" autofocus="true" placeholder="qui es-tu ?">
+      <div class="q-display-1 q-mb-md">{{ $appConfig.modalUserConnection.title }}</div>
+      <q-search v-model="terms" autofocus="true" :placeholder="$appConfig.modalUserConnection.placeholder">
         <!--
         <q-autocomplete
           :static-data="{field: 'rtbfLogin', list: dbContacts.results}"
@@ -164,12 +233,29 @@
         />
       </q-search>
     </q-modal>
-
+    <!-- Cette action sheet affiche les dernières sessions de l'utilisateur quand il se connecte, lui proposant de poursuivre une session antérieure -->
+    <q-action-sheet
+      v-model="promptPreviousSessionsComputed"
+      :title="$appConfig.promptPreviousSessions.title"
+      :actions="promptPreviousSessions.sessionsList"
+      @ok="loadSessionAction"
+    />
+    <!--
+    <q-action-sheet
+      v-model="promptPreviousSessionsComputed"
+      title="Action Sheet"
+      @ok="onOk"
+      @cancel="onCancel"
+      @show="onShow"
+      @hide="onHide"
+    />
+    -->
   </q-layout>
 </template>
 
 <script>
 import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
+// import appConfig from 'plugins/appConfig'
 
 export default {
   created () {
@@ -180,6 +266,7 @@ export default {
   },
   data () {
     return {
+      // promptPreviousSessions: true,
       leftDrawerOpen: true,
       popoverOpen: false,
       terms: ''
@@ -190,7 +277,8 @@ export default {
       'globalModule',
       [
         'socketConnected',
-        'userConnected'
+        'userConnected',
+        'promptPreviousSessions'
       ]
     ),
     /*
@@ -204,14 +292,21 @@ export default {
     ...mapState(
       'dbModule',
       [
-        'dbContacts',
-        'dbUsersForAutocomplete'
+        'dbContacts'
       ]
     ),
     // ...mapGetters([])
     ...mapGetters(
       'globalModule', ['isUserConnected']
-    )
+    ),
+    promptPreviousSessionsComputed: {
+      get () {
+        return this.promptPreviousSessions.vmodel
+      },
+      set (value) {
+        this.promptPreviousSessionsMutation({field: 'vmodel', value: value})
+      }
+    }
     /*
     ingests () {
       return this.$store.state.ingests
@@ -325,7 +420,8 @@ export default {
       'globalModule',
       [
         // 'addLogToListMutation',
-        'deleteLogOfTempMemoryMutation'
+        'deleteLogOfTempMemoryMutation',
+        'promptPreviousSessionsMutation'
       ]
     ),
     ...mapMutations(
@@ -348,7 +444,8 @@ export default {
       'dbModule',
       [
         'keepDbLogsAction',
-        'getContactsAction'
+        'getContactsAction',
+        'loadSessionAction'
       ]
     )
   },

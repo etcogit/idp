@@ -30,7 +30,9 @@ export default {
     results: [],
     lastGetRequest: {
       date: '',
-      request: {}
+      requestQuery: {},
+      requestProtocol: '',
+      requestBackendAction: ''
     }
   }
 }

@@ -12,7 +12,6 @@ var logsSchema = new Schema(
     userId: {type: Schema.ObjectId, ref: 'contact', required: true},
     userRtbfLogin: {type: String, required: true},
     userPlatform: {type: String}, // JSON stocké en text pour full text search
-    userIpAddress: {type: String, required: true},
     route: {type: String, required: true, trim: true},
     rootState: {type: String}, // JSON stocké en text pour full text search
     frontendAction: {type: String, trim: true}, // name of the method taht emits the request to the server

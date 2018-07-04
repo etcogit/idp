@@ -20,18 +20,18 @@ export const disconnectUserMutation = (state) => {
   state.usersForAutocomplete = []
 }
 export const addLogToTempMemoryMutation = (state, data) => {
-  console.log('userModule/mutations.js/addLogToTempMemoryMutation: ' + data)
+  console.log('globalModule/mutations.js/addLogToTempMemoryMutation: ' + data)
   state.tempLogs.push(data)
 }
 /*
 export const addLogToListMutation = (rootState, data) => {
-  console.log('userModule/mutations.js/addLogToListMutation: ' + JSON.stringify(data))
+  console.log('globalModule/mutations.js/addLogToListMutation: ' + JSON.stringify(data))
   // console.log(JSON.stringify(rootState))
   // rootState.dbModule.userLogs.push(data)
 }
 */
 export const deleteLogOfTempMemoryMutation = (state, data) => {
-  console.log('userModule/mutations.js/deleteLogOfTempMemoryMutation: ' + data)
+  console.log('globalModule/mutations.js/deleteLogOfTempMemoryMutation: ' + data)
   // Je supprime de state.tempLogs le userLog qui vient d'être inséré dans la DB. Pour ce faire, je cherche son index dans le tableau puis je le supprime
   state.tempLogs.splice(
     state.tempLogs.findIndex(userLog => userLog.tempId === data.tempId), // Cette fonction retourne un objet que j'ai appelé "userLog" dont le "tempId" est égal à data.tempId
@@ -39,9 +39,15 @@ export const deleteLogOfTempMemoryMutation = (state, data) => {
   )
 }
 export const jsonDebugMutation = (state, data) => {
-  console.log('userModule/mutations.js/jsonDebugMutation: ')
+  console.log('globalModule/mutations.js/jsonDebugMutation: ')
   // console.log(JSON.stringify(rootState))
   // rootState.dbModule.userLogs.push(data)
   state.jsonDebug = data
 }
+// Sert à modifier la valeur du v-model qui va afficher l'actionSheet
+export const promptPreviousSessionsMutation = (state, data) => {
+  console.log('globalModule/mutations.js/promptPreviousSessionsMutation: ' + JSON.stringify(data))
+  state.promptPreviousSessions[data.field] = data.value
+}
+
 /* eslint-enable camelcase */

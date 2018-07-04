@@ -42,68 +42,8 @@ export const connectUserAction = ({ dispatch, commit, state }, data) => {
   console.log('globalModule/actions.js/connectUserAction: ' + data)
   // J'enregistre mon user dans le store
   commit('connectUserMutation', data)
-  // Je vais chercher l'historique de mon user
-  /*
-  db.sales.aggregate(
-     [
-       { $sort: { socketId: 1, frontendTimeStamp: 1 } },
-       {
-         $group:
-           {
-             _id: "$socketId",
-             lastLogDate: { $last: "$frontendTimeStamp" }
-           }
-       }
-     ]
-  )
-  */
-  let query = {
-    socketId: Vue.prototype.$socket.id,
-    userId: state.userConnected._id,
-    userRtbfLogin: state.userConnected.userRtbfLogin,
-    conditions: {
-      $and: [
-        {userId: state.userConnected._id},
-        {socketId: {$ne: Vue.prototype.$socket.id}} // where socketId not equals to socketId of this session
-      ]
-    },
-    fields: 'frontendTimeStamp route frontendAction userPlatform socketId',
-    limit: 10,
-    sort: '-createdAt'
-  }
-  Vue.prototype.$axios.post('/getLogs', query)
-    .then((response) => {
-      Vue.prototype.$q.notify({
-        color: 'positive',
-        position: 'top',
-        message: 'Loading failed',
-        icon: 'report_problem'
-      })
-      console.log(response)
-    })
-    .catch(() => {
-      Vue.prototype.$q.notify({
-        color: 'negative',
-        position: 'top',
-        message: 'Loading failed',
-        icon: 'report_problem'
-      })
-    })
-  /*
-  let query = {
-    conditions: {
-      $and: [
-        {userId: state.userConnected._id},
-        {socketId: {$ne: Vue.prototype.$socket.id}} // where socketId not equals to socketId of this session
-      ]
-    },
-    fields: 'frontendTimeStamp route frontendAction userPlatform socketId',
-    limit: 10,
-    sort: '-createdAt'
-  }
-  dispatch('dbModule/getLogsAction', query, {root: true})
-  */
-  // dispatch('dbModule/getLogsAction', {userId: state.userConnected._id, limit: 10}, {root: true})
+  // Je vais chercher les dernières sessions de mon user
+  dispatch('dbModule/getLastSessionsAction', data, {root: true})
   dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/connectUserAction'}, {root: true})
 }
 export const disconnectUserAction = ({ dispatch, commit, state }) => {
@@ -115,8 +55,4 @@ export const checkUserConnection = ({ commit, state }, data) => {
   if (state.userConnected) {
 
   }
-}
-
-export const promptContinueSession = ({ commit, state }, data) => {
-  // Je dois
 }
