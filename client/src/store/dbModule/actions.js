@@ -26,8 +26,8 @@ export const getLogsAction = ({ dispatch, commit }, data) => {
     query.sort = data.sort
   }
   Vue.prototype.$socket.emit('getLogs', query)
-  commit('saveLastRequest', {db: 'dbLogs', requestType: 'lastGetRequest', request: query, requestProtocol: 'socket', requestBackendAction: '/getLogs'})
-  console.log(JSON.stringify(query))
+  commit('saveLastRequest', {db: 'dbLogs', requestType: 'lastGetRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'getLogs'})
+  // console.log(JSON.stringify(query))
   dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/getLogsAction', backendAction: 'getLogs', payloadToServer: query}, {root: true})
 }
 export const keepDbLogsAction = ({ commit, dispatch }, data) => {
@@ -69,6 +69,7 @@ export const getLastSessionsAction = ({ commit, rootState, dispatch }, data) => 
   }
   Vue.prototype.$axios.post('/getLastSessions', query)
     .then((response) => {
+      // console.log(response)
       // Je dois convertir les données reçues vers le bon format pour mon "actionSheet"
       let sessionsList = []
       for (var i = 0; i < response.data.length; i++) {
@@ -78,14 +79,20 @@ export const getLastSessionsAction = ({ commit, rootState, dispatch }, data) => 
         } else if (response.data[i].userPlatform.indexOf('mobile') !== -1) {
           device = 'phone_android'
         }
+        let userDeviceName = ''
+        if (response.data[i].hasOwnProperty('userDevice')) {
+          userDeviceName = ' - ' + response.data[i].userDevice.name
+        }
         sessionsList.unshift( // unshift permet de rajouter l'élément au début de la liste, contrairement à push qui rajoute à la fin
           {
-            label: date.formatDate(response.data[i].frontendTimeStamp, 'DD/MM/YYYY HH:mm:ss') + ' - ' + response.data[i].route,
+            label: date.formatDate(response.data[i].frontendTimeStamp, 'DD/MM/YYYY HH:mm:ss') + userDeviceName + ' - ' + response.data[i].route,
             icon: device,
             logId: response.data[i].logId
           }
         )
       }
+      // Je retire le Splash Screen
+      Vue.prototype.$q.loading.hide()
       commit('globalModule/promptPreviousSessionsMutation', {field: 'sessionsList', value: sessionsList}, {root: true})
       // Je dois afficher mon "actionSheet"
       commit('globalModule/promptPreviousSessionsMutation', {field: 'vmodel', value: true}, {root: true})
@@ -136,6 +143,67 @@ export const loadSessionAction = ({ dispatch, commit, rootState }, data) => {
     })
   commit('saveLastRequest', {db: 'dbLogs', requestType: 'lastGetRequest', request: query, requestProtocol: 'rest', requestBackendAction: '/getSession'})
   dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/loadSessionAction', backendAction: 'getSession', payloadToServer: query}, {root: true})
+}
+// Requête qui rajoute un utilisateur à la liste de ceux qui ont demandé de l'aide
+export const addUserThatNeedHelpAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/addUserThatNeedHelpAction')
+  let query = {
+    userId: rootState.globalModule.userConnected._id,
+    rtbfLogin: rootState.globalModule.userConnected.rtbfLogin,
+    firstName: rootState.globalModule.userConnected.firstName,
+    lastName: rootState.globalModule.userConnected.lastName,
+    fullName: rootState.globalModule.userConnected.fullName,
+    socketId: Vue.prototype.$socket.id,
+    status: 'waitingForHelp',
+    waysToContact: rootState.helpModule.waysToContactMe
+  }
+  Vue.prototype.$socket.emit('addUserThatNeedHelp', query)
+  commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'addUserThatNeedHelp'})
+  // console.log(JSON.stringify(query))
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/newUserNeedHelpAction', backendAction: 'addUserThatNeedHelp', payloadToServer: query}, {root: true})
+}
+// Requête qui retire un utilisateur de la liste de ceux qui ont demandé de l'aide
+export const removeUserThatNeedHelpAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/removeUserThatNeedHelpAction')
+  let query = {
+    socketId: Vue.prototype.$socket.id
+  }
+  Vue.prototype.$socket.emit('removeUserThatNeedHelp', query)
+  commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'removeUserThatNeedHelp'})
+  // console.log(JSON.stringify(query))
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/removeUserThatNeedHelpAction', backendAction: 'removeUserThatNeedHelp', payloadToServer: query}, {root: true})
+}
+// Requête qui informe que je vais aider qqun
+export const iWillHelpAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/iWillHelpAction')
+  // console.log(data)
+
+  let query = {
+    userHelping: {
+      userId: rootState.globalModule.userConnected._id,
+      rtbfLogin: rootState.globalModule.userConnected.rtbfLogin,
+      firstName: rootState.globalModule.userConnected.firstName,
+      lastName: rootState.globalModule.userConnected.lastName,
+      fullName: rootState.globalModule.userConnected.fullName,
+      socketId: Vue.prototype.$socket.id
+    },
+    userHelped: data
+  }
+  Vue.prototype.$socket.emit('iWillHelp', query)
+  commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'iWillHelp'})
+  console.log(query)
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/iWillHelpAction', backendAction: 'iWillHelp', payloadToServer: query}, {root: true})
+}
+export const joinSocketRoomAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/joinSocketRoomAction')
+  // Si la room a vocation d'aider (et pas de chatter), je rajoute le rootState aux datas à envoyer au serveur pour qu'il les transmette à l'aidant
+  if (data.goal === 'help') {
+    data.rootState = rootState
+  }
+  Vue.prototype.$socket.emit('joinSocketRoom', data)
+  commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: data, requestProtocol: 'socket', requestBackendAction: 'joinSocketRoom'})
+  // console.log(JSON.stringify(query))
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/joinSocketRoomAction', backendAction: 'joinSocketRoom', payloadToServer: data}, {root: true})
 }
 /*
 export const getLogsAction = ({ dispatch }, data) => {

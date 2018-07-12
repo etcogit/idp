@@ -12,6 +12,7 @@ import dbModule from './dbModule'
 import globalModule from './globalModule'
 import userModule from './userModule'
 import ingests from './ingests'
+import helpModule from './helpModule'
 
 Vue.use(Vuex)
 
@@ -22,7 +23,8 @@ const store = new Vuex.Store({
     dbModule,
     globalModule,
     userModule,
-    ingests
+    ingests,
+    helpModule
   },
   strict: true
 })
@@ -60,6 +62,10 @@ if (process.env.DEV && module.hot) {
   module.hot.accept(['./ingests'], () => {
     const newIngests = require('./ingests').default
     store.hotUpdate({ modules: { ingests: newIngests } })
+  })
+  module.hot.accept(['./helpModule'], () => {
+    const newHelpModule = require('./helpModule').default
+    store.hotUpdate({ modules: { ingests: newHelpModule } })
   })
 }
 

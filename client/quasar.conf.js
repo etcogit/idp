@@ -59,6 +59,7 @@ module.exports = function (ctx) {
         'QCardActions',
         'QCheckbox',
         'QChip',
+        'QCollapsible',
         'QDatetime',
         'QField',
         'QIcon',
@@ -75,8 +76,10 @@ module.exports = function (ctx) {
         'QList',
         'QListHeader',
         'QModal',
-        'QPageContainer',
+        'QOptionGroup',
         'QPage',
+        'QPageContainer',
+        'QPageSticky',
         'QPopover',
         'QProgress',
         'QRouteTab',
@@ -91,6 +94,7 @@ module.exports = function (ctx) {
         'QTree',
         'QToolbar',
         'QToolbarTitle',
+        'QTooltip',
         'QSearch',
         'QUploader'
       ],
@@ -100,12 +104,21 @@ module.exports = function (ctx) {
       ],
       // Quasar plugins
       plugins: [
-        'Notify'
+        'Notify',
+        'Cookies',
+        'Loading'
       ]
     },
     // animations: 'all' --- includes all animations
+    // Pour voir la liste des animations: https://github.com/daneden/animate.css
+    animations: 'all',
+    /*
     animations: [
+      'bounce',
+      'pulse',
+      'fadeOutDown'
     ],
+    */
     pwa: {
       cacheExt: 'js,html,css,ttf,eot,otf,woff,woff2,json,svg,gif,jpg,jpeg,png,wav,ogg,webm,flac,aac,mp4,mp3',
       manifest: {

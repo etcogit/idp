@@ -12,21 +12,10 @@ export const keepDbContactsMutation = (state, data) => {
     state.dbContacts.results = JSON.parse(JSON.stringify(data))
   }
 }
-/*
-export const keepDbUsersForAutocompleteMutation = (state, data) => { // Normalement, avec l'auto login, il ne devrait pas y avoir cette mécanique
-  console.log('dbModule/mutations.js/keepDbUsersForAutocompleteMutation: ' + data)
-  state.dbUsersForAutocomplete.results.push({
-    // stringToSearchFor: data.firstName + ' ' + data.lastName + ' ' + data.rtbfLogin,
-    stringToSearchFor: data.rtbfLogin,
-    value: data,
-    label: data.firstName + ' ' + data.lastName,
-    sublabel: data.rtbfLogin + '@rtbf.be',
-    icon: 'person'
-  })
-}
-*/
 export const keepDbLogsMutation = (state, data) => {
-  console.log('dbModule/mutations.js/keepDbLogsMutation: ')
+  if (Vue.prototype.$appConfig.global.console.logs === true) {
+    console.log('dbModule/mutations.js/keepDbLogsMutation: ')
+  }
   // state.tempContacts = JSON.parse(JSON.stringify(data))
   // Object.assign(state.contacts, data)
   if (!Array.isArray(data)) {
@@ -75,4 +64,8 @@ export const formatLogMutation = (state, [jsonObjToFormat, arrayIndex]) => {
 export const saveLastRequest = (state, data) => {
   console.log('dbModule/mutations.js/saveLastRequest: ')
   state[data.db][data.requestType] = {date: new Date(), request: data.request}
+}
+export const keepUsersThatNeedHelpMutation = (state, data) => {
+  console.log('dbModule/mutations.js/keepUsersThatNeedHelpMutation: ')
+  state.listUsersThatNeedHelp.results = data
 }

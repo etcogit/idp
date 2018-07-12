@@ -54,6 +54,7 @@ var contactSchema = new Schema(
 
 // J'ajoute des options
 contactSchema.set('timestamps', true) // Cette option rajoute 2 champs: createdAt et updatedAt
+contactSchema.set('toObject', { virtuals: true }) // Cette option permet de rajouter les "virtuals" dans les champs qui sont renvoyés par la requête
 
 // Virtual for contact's full name
 contactSchema
@@ -63,11 +64,13 @@ contactSchema
   })
 
 // Virtual for author's URL
+/*
 contactSchema
   .virtual('url')
   .get(function () {
     return '/catalog/author/' + this._id
   })
+*/
 
 // Export function to create "contacts" model class
 module.exports = mongoose.model('contacts', contactSchema)

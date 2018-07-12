@@ -36,8 +36,8 @@ app.get('/', function (req, res) {
 })
 
 app.post('/getContacts', function (req, res) {
-  // console.log('REST: getContacts: ' + JSON.stringify(req.body))
   console.log('REST: getContacts: ')
+  // console.log(req.body)
 
   ContactModel
     .find(req.body.conditions, req.body.fields)
@@ -84,7 +84,8 @@ app.post('/getLastSessions', function (req, res) {
         'route': '$record.route',
         'logId': '$record._id',
         'frontendAction': '$record.frontendAction',
-        'userPlatform': '$record.userPlatform'
+        'userPlatform': '$record.userPlatform',
+        'userDevice': '$record.userDevice'
       }}
     ], function (err, results) {
       if (err) {
@@ -145,6 +146,9 @@ app.post('/getSession', function (req, res) {
     })
 })
 
+// La variable ci-dessous sert à stocker la liste des utilisateurs dans une variable plutôt qu'en DB. Ca veut dire que son contenu est perdu à chaque redémarrage du serveur
+let usersThatNeedHelp = []
+
 // SOCKET //////////////////////////////////
 // Chargement de socket.io
 // var io = require('socket.io').listen(server)
@@ -157,11 +161,30 @@ io.sockets.on('connection', function (socket) {
   // var userIpAddress = socket.request.connection._peername
   // var userIpAddress = socket.handshake.address
   // console.log(userIpAddress)
-  socket.emit('socketConnect', true)
+  socket.emit('socketConnectionEstablished', true)
+  socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+  // console.log(JSON.stringify(socket.id))
 
   // En cas de déconnection
   socket.on('disconnect', function () {
     console.log('SOCKET: Client déconnecté')
+    // Si la socketId est présente dans la liste des users qui demandent de l'aide, je le retire
+    // console.log(usersThatNeedHelp)
+    let indexOfSocketId = usersThatNeedHelp.findIndex(index => index.socketId === socket.id)
+    if (indexOfSocketId >= 0) {
+      usersThatNeedHelp.splice(indexOfSocketId, 1)
+      // socket.emit('usersThatNeedHelpList', usersThatNeedHelp) // -> ça n'a pas de sens puisqu'il est déconnecté...
+      socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    }
+    // console.log('retire: ' + socket.id)
+    // console.log(usersThatNeedHelp)
+  })
+
+  // Cette méthode sert à vérifier la connexion socket pcq la connexion initiale se fait parfois trop tôt. C'est pour ça que je renvoie la même chose que pour la connexion
+  socket.on('checkSocketConnexion', function () {
+    console.log('SOCKET: checkSocketConnexion = ')
+    socket.emit('socketConnectionEstablished', true)
+    socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
   })
 
   // Création d'un nouveau contact
@@ -222,7 +245,7 @@ io.sockets.on('connection', function (socket) {
     payload.userIpAddress = userIpAddress
     var log = new LogModel()
     Object.assign(log, payload) // Je rajoute à userLog le contenu de payload en respectant la structure de l'objet
-
+    // console.log(log)
     log.save(function (err, result) {
       if (err) { throw err }
       console.log('Log ajouté avec succès !')
@@ -243,6 +266,78 @@ io.sockets.on('connection', function (socket) {
         socket.emit('socketLogsList', results)
         // console.log(results)
       })
+  })
+
+  // Ajout d'un nouvel utilisateur qui demande de l'aide
+  socket.on('addUserThatNeedHelp', function (payload) {
+    console.log('SOCKET: addUserThatNeedHelp: ')
+
+    usersThatNeedHelp.push(payload)
+    socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // console.log('ajoute: ' + payload.socketId)
+    console.log(usersThatNeedHelp)
+  })
+
+  // Retire de la liste, un utilisateur qui demande de l'aide
+  socket.on('removeUserThatNeedHelp', function (payload) {
+    console.log('SOCKET: addUserThatNeedHelp: ')
+
+    let indexOfSocketId = usersThatNeedHelp.findIndex(index => index.socketId === payload.socketId)
+    if (indexOfSocketId >= 0) {
+      usersThatNeedHelp.splice(indexOfSocketId, 1)
+      socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+      socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    }
+  })
+
+  // Un aidant prend en charge un aidé
+  socket.on('iWillHelp', function (payload) {
+    console.log('SOCKET: iWillHelp: ')
+    console.log(payload)
+
+    // Si j'ai bien un user connecté avec cette 'socketId'...
+    let indexOfSocketId = usersThatNeedHelp.findIndex(index => index.socketId === payload.userHelped.socketId)
+    if (indexOfSocketId >= 0) {
+      // ...j'enregistre l'info dans ma liste
+      usersThatNeedHelp[indexOfSocketId].helpedBy = payload.userHelping.rtbfLogin
+      usersThatNeedHelp[indexOfSocketId].status = 'beingHelped'
+      // ...je dois ensuite créer une 'room' et y inscrire mes 2 users
+      let roomName = 'helping_' + payload.userHelped.socketId
+      socket.join(roomName)
+      // Je demande à la personne que je vais aider de rejoindre cette room dans le but de l'aider
+      socket.broadcast.to(payload.userHelped.socketId).emit('socketJoinRoom', {roomName: roomName, goal: 'help', users: payload})
+      // J'envoie un statut à la personne qui aide pour mettre à jour le statut d'attente
+      // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+      // socket.to(roomName).emit('socketJoinRoom', roomName)
+      // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+      // socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+      // console.log(usersThatNeedHelp)
+    }
+  })
+
+  // Un user rejoint une room
+  socket.on('joinSocketRoom', function (payload) {
+    console.log('SOCKET: joinSocketRoom: ')
+    // console.log(socket.id)
+    console.log(payload)
+
+    socket.join(payload.roomName)
+    io.sockets.to(payload.roomName).emit('socketStartHelping', payload)
+    // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // console.log(usersThatNeedHelp)
+  })
+
+  // Chat
+  socket.on('chat', function (payload) {
+    console.log('SOCKET: chat: ')
+    console.log(payload)
+
+    io.sockets.to(payload.roomName).emit('socketChat', payload)
+    // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // console.log(usersThatNeedHelp)
   })
 })
 

@@ -3,6 +3,17 @@
 
     <!-- (Optional) The Header -->
     <q-layout-header>
+      <div v-if="promptUserDeviceName" class="row gutter-sm text-white bg-teal-10 items-center content-center" style="padding-top: 10px">
+        <div class="col-xs-12 col-sm-7" style="text-align:center; justify:center">{{ $appConfig.promptUserDevice.text }}</div>
+        <div class="col-xs-1 col-sm-0"></div>
+        <div class="col-xs-6 col-sm-2"><q-input class="col" style="padding: 0" :placeholder="$appConfig.promptUserDevice.name.placeholder" hide-underline align="center" color="teal-4" inverted v-model="userDeviceNameComputed" @keyup.enter="createUserDeviceCookieAction" /></div>
+        <div class="col-xs-5 col-sm-2"><q-btn class="col" color="teal-4" :label="$appConfig.promptUserDevice.btn.label" @click="createUserDeviceCookieAction" /></div>
+        <div class="col-xs-0 col-sm-1"></div>
+      </div>
+      <div v-if="helping" class="row gutter-sm bg-orange" style="text-align:center; padding: 5px">
+        <div class="col-xs-12 col-sm-8">Cette page est partagée avec {{ iNeedHelp ? users.userHelping.fullName : users.userHelped.fullName }}</div>
+        <div class="col-xs-12 col-sm-4"><q-btn dense outline label="Quitter le partage" @click="stopHelpingAction" /></div>
+      </div>
       <q-toolbar>
         <q-btn
           flat
@@ -21,114 +32,52 @@
         <div>&nbsp;-&nbsp;Succeeded: {{totalSucceededIngests}}</div>
         -->
         <!-- HELP -->
-        <q-btn-dropdown
-          color="purple"
-          split
-          label="X collègues ont besoin d'aide"
-        >
-          <!-- dropdown content -->
-          <q-list link>
-            <q-item>
-              <q-item-main>
-                <q-item-tile label>Je veux bien aider</q-item-tile>
-              </q-item-main>
-            </q-item>
-            <q-item>
-              <q-item-main>
-                <q-item-tile label>Pas maintenant</q-item-tile>
-              </q-item-main>
-            </q-item>
-          </q-list>
-        </q-btn-dropdown>
+        <!-- Ce bouton change de couleur et se met à "pulser" si un autre utilisateur demande de l'aide -->
         <q-btn
           dense
-          flat
+          round
+          :flat="!usersNeedHelp ? true : false"
           :icon="$appConfig.idp_home.toolbar.help.icon"
-        >
-          <q-popover>
-
-            <!--
-            <q-list highlight separator link>
-              <q-item
-                v-for="user in ingests.users"
-                :key="user.rtbfLogin"
-                v-close-overlay
-                highlight separator
-                @click.native="connectUser(user)"
-              >
-                <q-item-main>
-                  {{ user.firstName }} {{ user.lastName }} ({{ user.rtbfLogin }})
-                </q-item-main>
-              </q-item>
-            </q-list>
-            -->
-            <q-item
-              v-close-overlay
-              highlight separator
-              @click="helpNeededAction"
-            >
-              <q-item-main>
-                <q-item-tile label>Demander de l'aide aux utilisateurs connectés</q-item-tile>
-              </q-item-main>
-            </q-item>
-            <q-item
-              v-close-overlay
-              highlight separator
-            >
-              <q-item-main>
-                <q-item-tile label>Consulter la documentation liée à cette page</q-item-tile>
-              </q-item-main>
-            </q-item>
-            <q-item
-              v-close-overlay
-              highlight separator
-            >
-              <q-item-main>
-                <q-item-tile label>Questions fréquentes liées à cette page</q-item-tile>
-              </q-item-main>
-            </q-item>
-          </q-popover>
-        </q-btn>
-        <!-- ME -->
+          :color="usersNeedHelp ? $appConfig.global.color.help.primaryColor : null"
+          :text-color="usersNeedHelp ? $appConfig.global.color.help.textOnPrimaryColor : null"
+          :class="usersNeedHelp ? 'animated infinite pulse' : null"
+          @click.native="rightDrawerOpenMutation"
+        />
+        <!-- USER -->
         <q-btn
           dense
           flat
-          icon="account_box"
+          :icon="$appConfig.idp_home.toolbar.user.icon"
         >
           <q-popover>
+            <!-- ME -->
             <q-item>
               <q-item-main>
-                <q-item-tile label>{{ userConnected.firstName }} {{ userConnected.lastName }}</q-item-tile>
+                <q-item-tile label>{{ userConnected.fullName }}</q-item-tile>
                 <q-item-tile sublabel>{{ userConnected.rtbfLogin }}@rtbf.be</q-item-tile>
               </q-item-main>
+              <q-item-side>
+                <q-btn dense flat :icon="$appConfig.idp_home.toolbar.user.me.icon" v-close-overlay @click="disconnectUserAction">
+                  <q-tooltip class="text-no-wrap">{{ $appConfig.idp_home.toolbar.user.me.tooltip }}</q-tooltip>
+                </q-btn>
+              </q-item-side>
+            </q-item>
+            <!-- DEVICE -->
+            <q-item v-if="userDevice.hasOwnProperty('name')">
+              <q-item-main>
+                <q-item-tile label>{{ userDevice.name }}</q-item-tile>
+                <q-item-tile sublabel><i>{{ $appConfig.idp_home.toolbar.user.device.sublabel }}</i></q-item-tile>
+              </q-item-main>
+              <q-item-side>
+                <q-btn dense flat icon="create" color="grey-5" v-close-overlay @click="promptUserDeviceNameMutation" />
+              </q-item-side>
             </q-item>
             <q-item-separator />
-            <q-item>
-              <q-item-main>
-                <q-btn v-close-overlay :no-wrap="true" icon="exit_to_app" label="Me déconnecter" @click.native="disconnectUserAction" />
-              </q-item-main>
-            </q-item>
-
-            <!--
-            <q-list highlight separator link>
-              <q-item
-                v-for="user in ingests.users"
-                :key="user.rtbfLogin"
-                v-close-overlay
-                highlight separator
-                @click.native="connectUser(user)"
-              >
-                <q-item-main>
-                  {{ user.firstName }} {{ user.lastName }} ({{ user.rtbfLogin }})
-                </q-item-main>
-              </q-item>
-            </q-list>
-            -->
           </q-popover>
         </q-btn>
         <!-- CONNECTION STATUS -->
-        <!-- <q-icon name="warning" color="negative" v-if="!socketConnected" /> -->
-        <q-icon name="warning" color="negative" v-if="$socket.disconnected" />
+        <q-icon name="warning" color="negative" v-if="!socketConnected" />
+        <!-- <q-icon name="warning" color="negative" v-if="$socket.disconnected" /> -->
       </q-toolbar>
     </q-layout-header>
 
@@ -199,36 +148,96 @@
     <!-- TIROIR DE DROITE -->
     <q-layout-drawer
       side="right"
-      v-model="rightDrawerOpen"
+      v-model="rightDrawerOpenComputed"
       :content-class="$q.theme === 'mat' ? 'bg-grey-2' : null"
     >
+      <q-list separator>
+        <q-collapsible
+          v-if="usersNeedHelp"
+          opened
+          group="helpAccordion"
+          :header-class="$appConfig.global.color.help.textPrimaryColor"
+        >
+          <template slot="header">
+            <q-item-side left>
+              <q-icon
+                :name="$appConfig.idp_home.rightDrawer.help.accordion.userNeedHelp.accordionIcon"
+                :color="$appConfig.global.color.help.primaryColor"
+                size="24px"
+              />
+            </q-item-side>
+            <q-item-main :label="$appConfig.idp_home.rightDrawer.help.accordion.userNeedHelp.accordionLabel" />
+          </template>
+          <q-list no-border>
+            <q-item v-for="userThatNeedHelp in listUsersThatNeedHelp.results" :key="userThatNeedHelp.userId">
+              <q-item-side left icon="account_circle" />
+              <q-item-main>
+                <div>{{ userThatNeedHelp.firstName + ' ' + userThatNeedHelp.lastName }}</div>
+              </q-item-main>
+              <q-item-side right>
+                <q-btn label="Aider" dense outline :color="$appConfig.global.color.help.primaryColor" :disable="iNeedHelp" @click="iWillHelpAction(userThatNeedHelp)" />
+              </q-item-side>
+            </q-item>
+          </q-list>
+        </q-collapsible>
+        <q-collapsible group="helpAccordion" :icon="$appConfig.idp_home.rightDrawer.help.accordion.iNeedHelp.accordionIcon" :label="$appConfig.idp_home.rightDrawer.help.accordion.iNeedHelp.accordionLabel">
+          <div :class="$appConfig.global.color.help.textPrimaryColor">{{ $appConfig.idp_home.rightDrawer.help.accordion.iNeedHelp.waysToContactMe.formLabel }}</div>
+          <q-option-group
+            type="checkbox"
+            :color="$appConfig.global.color.help.primaryColor"
+            v-model="waysToContactMeComputed"
+            :options="$appConfig.idp_home.rightDrawer.help.accordion.iNeedHelp.waysToContactMe.checkBoxOption"
+          />
+          <q-btn :label="$appConfig.idp_home.rightDrawer.help.accordion.iNeedHelp.waysToContactMe.formBtnValidateLabel" dense outline :color="$appConfig.global.color.help.primaryColor" :disable="iNeedHelp" @click="iNeedHelpAction" />
+        </q-collapsible>
+        <q-collapsible group="helpAccordion" :icon="$appConfig.idp_home.rightDrawer.help.accordion.checkDoc.accordionIcon" :label="$appConfig.idp_home.rightDrawer.help.accordion.checkDoc.accordionLabel">
+          <div>
+            Titi
+          </div>
+        </q-collapsible>
+        <q-collapsible group="helpAccordion" :icon="$appConfig.idp_home.rightDrawer.help.accordion.faq.accordionIcon" :label="$appConfig.idp_home.rightDrawer.help.accordion.faq.accordionLabel">
+          <div>
+            Tata
+          </div>
+        </q-collapsible>
+        <q-collapsible group="helpAccordion" :icon="$appConfig.idp_home.rightDrawer.help.accordion.requestFeature.accordionIcon" :label="$appConfig.idp_home.rightDrawer.help.accordion.requestFeature.accordionLabel">
+          <div>
+            Tata
+          </div>
+        </q-collapsible>
+        <q-collapsible group="helpAccordion" :icon="$appConfig.idp_home.rightDrawer.help.accordion.postBug.accordionIcon" :label="$appConfig.idp_home.rightDrawer.help.accordion.postBug.accordionLabel">
+          <div>
+            Tata
+          </div>
+        </q-collapsible>
+      </q-list>
     </q-layout-drawer>
     <q-page-container>
       <!-- This is where pages get injected -->
       <router-view />
     </q-page-container>
 
-    <!-- <q-modal v-if="!$store.isUserConnected" :content-css="{padding: '50px', minWidth: '50vw'}"> -->
+    <!-- MODAL DE CONNECTION USER -->
     <q-modal
-      v-model="isUserConnected"
+      v-model="promptUserConnection"
       :content-css="{padding: '50px', minWidth: '50vw'}"
       :no-route-dismiss="true"
       :no-esc-dismiss="true"
       :no-backdrop-dismiss="true"
     >
       <div class="q-display-1 q-mb-md">{{ $appConfig.modalUserConnection.title }}</div>
-      <q-search v-model="terms" autofocus="true" :placeholder="$appConfig.modalUserConnection.placeholder">
+      <q-search v-model="userConnectAutoCompleteTextInput" autofocus="true" :placeholder="$appConfig.modalUserConnection.placeholder">
         <!--
         <q-autocomplete
           :static-data="{field: 'rtbfLogin', list: dbContacts.results}"
           @selected="connectUserAction"
-          @hide="terms=''"
+          @hide="userConnectAutoCompleteTextInput=''"
         />
         -->
         <q-autocomplete
           :debounce="500"
           @selected="connectUserAction"
-          @hide="terms=''"
+          @hide="userConnectAutoCompleteTextInput=''"
           @search="loginAutocompleteSearch"
         />
       </q-search>
@@ -240,16 +249,11 @@
       :actions="promptPreviousSessions.sessionsList"
       @ok="loadSessionAction"
     />
-    <!--
-    <q-action-sheet
-      v-model="promptPreviousSessionsComputed"
-      title="Action Sheet"
-      @ok="onOk"
-      @cancel="onCancel"
-      @show="onShow"
-      @hide="onHide"
-    />
-    -->
+    <!-- Bouton d'annulation de demande d'aide -->
+    <!-- Cet élément doit rester le dernier avant la balise de fermeture q-layout -->
+    <q-page-sticky position="bottom-right" :offset="[18, 18]">
+      <q-btn v-if="iNeedHelp" :color="$appConfig.global.color.help.primaryColor" :label="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonLabel" @click="iNeedHelpCancelAction" :icon="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonIcon" />
+    </q-page-sticky>
   </q-layout>
 </template>
 
@@ -260,16 +264,24 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 export default {
   created () {
     this.$axios.defaults.baseURL = this.$appConfig.restApiUrl // Je configure $axios avec les paramètres définis par défaut dans $appConfig
+    // J'effectue une requête socket pcq la connexion initiale se fait trop tôt
+    this.$socket.emit('checkSocketConnexion')
+    // J'affiche un "loading" en attendant que tout soit chargé
+    if (this.socketConnected === false) {
+      this.$q.loading.show({
+        message: 'Chargement de l\'application...',
+        messageColor: 'white',
+        spinnerColor: 'white'
+      })
+    }
   },
   mounted () {
     this.saveLogAction({})
   },
   data () {
     return {
-      // promptPreviousSessions: true,
       leftDrawerOpen: true,
-      popoverOpen: false,
-      terms: ''
+      userConnectAutoCompleteTextInput: ''
     }
   },
   computed: {
@@ -278,21 +290,28 @@ export default {
       [
         'socketConnected',
         'userConnected',
-        'promptPreviousSessions'
+        'promptUserConnection',
+        'promptPreviousSessions',
+        'promptUserDeviceName',
+        'rightDrawerOpen',
+        'userDevice'
       ]
     ),
-    /*
     ...mapState(
-      'contactModule',
+      'helpModule',
       [
-        'contacts'
+        'waysToContactMe',
+        'iNeedHelp',
+        'usersNeedHelp',
+        'helping',
+        'userHelping'
       ]
     ),
-    */
     ...mapState(
       'dbModule',
       [
-        'dbContacts'
+        // 'dbContacts'
+        'listUsersThatNeedHelp'
       ]
     ),
     // ...mapGetters([])
@@ -305,6 +324,31 @@ export default {
       },
       set (value) {
         this.promptPreviousSessionsMutation({field: 'vmodel', value: value})
+      }
+    },
+    rightDrawerOpenComputed: {
+      get () {
+        // console.log('rightDrawerOpen: ' + this.rightDrawerOpen)
+        return this.rightDrawerOpen
+      },
+      set (value) {
+        this.rightDrawerOpenMutation(value)
+      }
+    },
+    waysToContactMeComputed: {
+      get () {
+        return this.waysToContactMe
+      },
+      set (value) {
+        this.waysToContactMeMutation(value)
+      }
+    },
+    userDeviceNameComputed: {
+      get () {
+        return this.userDevice.name
+      },
+      set (value) {
+        this.userDeviceMutation({name: value})
       }
     }
     /*
@@ -363,20 +407,20 @@ export default {
     */
   },
   methods: {
-    loginAutocompleteSearch (terms, done) {
-      console.log('idp_home.vue/search: ' + terms)
+    loginAutocompleteSearch (userConnectAutoCompleteTextInput, done) {
+      console.log('idp_home.vue/search: ' + userConnectAutoCompleteTextInput)
       // make an AJAX call
       // then call done(Array results)
       // Je construis ma requête
       let query = {
         conditions: {
           $or: [
-            {rtbfLogin: {$regex: terms, $options: 'i'}},
-            {firstName: {$regex: terms, $options: 'i'}},
-            {lastName: {$regex: terms, $options: 'i'}}
+            {rtbfLogin: {$regex: userConnectAutoCompleteTextInput, $options: 'i'}},
+            {firstName: {$regex: userConnectAutoCompleteTextInput, $options: 'i'}},
+            {lastName: {$regex: userConnectAutoCompleteTextInput, $options: 'i'}}
           ]
         },
-        fields: 'rtbfLogin firstName lastName',
+        fields: 'rtbfLogin firstName lastName fullName',
         limit: 10
       }
       // console.log(query)
@@ -389,7 +433,8 @@ export default {
               // stringToSearchFor: data.firstName + ' ' + data.lastName + ' ' + data.rtbfLogin,
               // stringToSearchFor: response.data[i].rtbfLogin,
               value: response.data[i],
-              label: response.data[i].firstName + ' ' + response.data[i].lastName,
+              // label: response.data[i].firstName + ' ' + response.data[i].lastName,
+              label: response.data[i].fullName,
               sublabel: response.data[i].rtbfLogin + '@rtbf.be',
               icon: 'person'
             })
@@ -421,15 +466,23 @@ export default {
       [
         // 'addLogToListMutation',
         'deleteLogOfTempMemoryMutation',
-        'promptPreviousSessionsMutation'
+        'promptPreviousSessionsMutation',
+        'promptUserDeviceNameMutation',
+        'rightDrawerOpenMutation',
+        'userDeviceMutation'
       ]
     ),
     ...mapMutations(
       'dbModule',
       [
         'keepDbContactsMutation',
-        'keepDbLogsMutation',
-        'keepDbUsersForAutocompleteMutation'
+        'keepDbLogsMutation'
+      ]
+    ),
+    ...mapMutations(
+      'helpModule',
+      [
+        'waysToContactMeMutation'
       ]
     ),
     ...mapActions(
@@ -437,15 +490,28 @@ export default {
       [
         'saveLogAction',
         'connectUserAction',
-        'disconnectUserAction'
+        'connectUserIfCookieAction',
+        'disconnectUserAction',
+        'createUserDeviceCookieAction'
       ]
     ),
     ...mapActions(
       'dbModule',
       [
         'keepDbLogsAction',
-        'getContactsAction',
-        'loadSessionAction'
+        'loadSessionAction',
+        'iWillHelpAction',
+        'joinSocketRoomAction'
+      ]
+    ),
+    ...mapActions(
+      'helpModule',
+      [
+        'iNeedHelpAction',
+        'iNeedHelpCancelAction',
+        'keepUsersThatNeedHelpAction',
+        'startHelpingAction',
+        'stopHelpingAction'
       ]
     )
   },
@@ -454,14 +520,30 @@ export default {
     // Quand j'obtiens une connexion socket avec le serveur
     connect: function () {
       console.log('idp_home.vue/connect')
+      /*
       // Je modifie une variable de mon state pour pouvoir afficher mon statut de connexion
       this.$store.commit('globalModule/socketConnect', true)
+      // S'il n'y a pas de user connecté, je regarde s'il y a un cookie userConnected pour le connecter automatiquement
+      if (!this.userConnected.hasOwnProperty('_id')) {
+        this.connectUserIfCookieAction()
+      }
+      */
     },
     // Quand je perds la connexion socket avec le serveur
     disconnect: function () {
       console.log('idp_home.vue/disconnect')
       // Je modifie une variable de mon state pour pouvoir afficher mon statut de connexion
       this.$store.commit('globalModule/socketConnect', false)
+    },
+    // Quand j'ai la confirmation de connection socket, je lance qques processus
+    socketConnectionEstablished (status) {
+      console.log('idp_home.vue/socketConnectionEstablished')
+      // Je modifie une variable de mon state pour pouvoir afficher mon statut de connexion
+      this.$store.commit('globalModule/socketConnect', true)
+      // S'il n'y a pas de user connecté, je regarde s'il y a un cookie userConnected pour le connecter automatiquement
+      if (!this.userConnected.hasOwnProperty('_id')) {
+        this.connectUserIfCookieAction()
+      }
     },
     // Quand un contact est créé, je notifie l'utilisateur, je rajoute le contact à la liste locale et je nettoie mon state temporaire
     socketContactCreated (newContact) {
@@ -479,16 +561,12 @@ export default {
       console.log('idp_home.vue/socketContactList')
       // Je sauvegarde la liste des contacts
       this.keepDbContactsMutation(contacts)
-      // Je dois mapper la liste dbContacts pour qu'elle corresponde aux critères de l'autocomplete
-      if (this.dbContacts.results.length === 0) {
-        for (var i = 0; i < contacts.length; i++) {
-          this.keepDbUsersForAutocompleteMutation(contacts[i])
-        }
-      }
     },
     // Quand un userLog est enregistré dans la DB, je nettoie mon state temporaire
     socketLogSaved (userLog) {
-      console.log('idp_home.vue/socketLogSaved: ') //  + JSON.stringify(userLog)
+      if (this.$appConfig.global.console.logs === true) {
+        console.log('idp_home.vue/socketLogSaved: ') //  + JSON.stringify(userLog)
+      }
       this.keepDbLogsMutation(userLog)
       this.deleteLogOfTempMemoryMutation(userLog)
     },
@@ -497,6 +575,27 @@ export default {
       console.log('idp_home.vue/socketLogsList')
       // Je sauvegarde la liste des logs
       this.keepDbLogsAction(data)
+    },
+    // Quand le serveur m'envoie la liste des users qui demandent de l'aide
+    usersThatNeedHelpList (data) {
+      console.log('idp_home.vue/usersThatNeedHelpList')
+      // Je sauvegarde la liste
+      this.keepUsersThatNeedHelpAction(data)
+    },
+    // Je dois rejoindre la room créée pour interagir avec un autre user
+    socketJoinRoom (data) {
+      console.log('idp_home.vue/socketJoinRoom')
+      console.log(data)
+      // Je m'inscris à la room
+      this.joinSocketRoomAction(data)
+    },
+    // Je reçois le rootState de l'aidé
+    socketStartHelping (data) {
+      console.log('idp_home.vue/socketStartHelping')
+      console.log(data)
+      // console.log(data)
+      // console.log(this.$socket)
+      this.startHelpingAction(data)
     }
   }
 }
