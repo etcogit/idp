@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import router from '../../router'
-import { extend, Cookies } from 'quasar'
+import { Cookies } from 'quasar'
+// import { extend, Cookies } from 'quasar'
 
 // Exemple de méthode qui appelle cette action:
 // this.saveLogAction({frontendAction: 'createContact', backendAction: 'createContact', payloadToServer: this.newContact})
@@ -20,11 +21,12 @@ export const saveLogAction = ({ commit, rootState }, data) => {
     data.userDevice = rootState.globalModule.userDevice
     data.route = router.history.current.fullPath // me permet de récupérer le "path" de l'url
     // console.log(rootState)
-    data.rootState = extend(true, data.rootState, rootState) // Je copie aussi le rootState...
+    // data.rootState = extend(true, data.rootState, rootState) // Je copie aussi le rootState...
     // data.rootState = JSON.parse(JSON.stringify(rootState)) // Je copie aussi le rootState...
     // data.rootState = JSON.parse(JSON.stringify(rootState, getCircularReplacer())) // Je copie aussi le rootState...
-    // data.rootState = JSON.parse(JSON.decycle(rootState)) // Je copie aussi le rootState...
+    data.rootState = JSON.decycle(rootState) // Je copie aussi le rootState...
     // data.rootState = JSON.parse(JSON.stringify(JSON.decycle(rootState))) // Je copie aussi le rootState...
+    // console.log(JSON.stringify(data))
     // Je supprime de "dbModule" toutes les data qui proviennent de la DB -> ça ne sert à rien de les sauvegarder dans les logs
     for (var key in data.rootState.dbModule) {
       // skip loop if the property is from prototype
@@ -34,7 +36,7 @@ export const saveLogAction = ({ commit, rootState }, data) => {
     }
     // Je supprime le contenu du globalModule.tempLogs puisqu'il contient une copie du rootState
     data.rootState.globalModule.tempLogs = ['-deleted-']
-    // console.log(JSON.stringify(data.rootState)) // Je copie aussi le rootState...
+    // console.log(JSON.stringify(data))
     let fieldsToStringify = Vue.prototype.$appConfig.db.logs.fieldsToStringify
     // console.log('fieldsToStringify = ' + JSON.stringify(fieldsToStringify))
     for (var i = 0; i < fieldsToStringify.length; i++) {
@@ -64,7 +66,7 @@ export const connectUserAction = ({ dispatch, commit, state }, data) => {
   if (Cookies.has('userDevice')) {
     commit('userDeviceMutation', Cookies.get('userDevice'))
   } else {
-    commit('promptUserDeviceNameMutation')
+    commit('promptUserDeviceNameMutation', data)
   }
   // S'il n'y a pas de cookie "device" j'affiche le formulaire demandant d'identifier le device
 
@@ -90,6 +92,7 @@ export const disconnectUserAction = ({ dispatch, commit, state }) => {
   // Je supprime le cookie "userConnected"
   Cookies.remove('userConnected') // -> semble ne pas fonctionner
   commit('disconnectUserMutation')
+  commit('userModule/hasAvatarImgMutation', true, {root: true})
   // commit('promptUserConnectionMutation')
   dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/disconnectUserAction'}, {root: true})
 }
@@ -100,6 +103,45 @@ export const createUserDeviceCookieAction = ({ dispatch, commit, state }) => {
   // Je retire le formulaire
   commit('promptUserDeviceNameMutation', false)
   dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/createUserDeviceCookieAction'}, {root: true})
+}
+// Je reçois une mutation à effectuer
+export const syncSessionsAction = ({ commit }, data) => {
+  console.log('globalModule/actions.js/syncSessionsAction')
+  commit(data.type, {technicalData: {propagateSyncSession: false}, data: data.payload}, {root: true})
+  // dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/createUserDeviceCookieAction'}, {root: true})
+}
+// Je reçois une route à changer
+export const syncRoutesAction = ({ commit }, data) => {
+  console.log('globalModule/actions.js/syncRoutesAction')
+  // console.log('swith too: ' + data.to.fullPath)
+  router.push({path: data.to.fullPath})
+  // dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/createUserDeviceCookieAction'}, {root: true})
+}
+// Je reçois une session à charger
+export const loadSessionAction = ({ commit, dispatch, rootState }, data) => {
+  console.log('globalModule/actions.js/loadSessionAction')
+  console.log(data)
+
+  // Je remet en JSON toutes les données stockées sous forme de text dans la DB à des fins de recherche full text. La liste des champs est stockée dans le plugin "appConfig"
+  let fieldsToParse = Vue.prototype.$appConfig.db.logs.fieldsToStringify
+  for (var i = 0; i < fieldsToParse.length; i++) {
+    if (data[fieldsToParse[i]]) { // Si ce champ est dans la liste des champs à formater, alors je le fais
+      // console.log('fieldsToParsee = ' + fieldsToParse[i])
+      // console.log(JSON.parse(response[fieldsToParse[i]]))
+      data[fieldsToParse[i]] = JSON.parse(data[fieldsToParse[i]])
+    }
+  }
+
+  // Je renvoie l'utilisatuer vers la bonne page
+  router.push({path: data.route})
+  // J'écrase le "rootState"
+  // rootState = JSON.parse(JSON.stringify(data.rootState))
+
+  // Je relance les dernières requêtes pour récupérer les data
+
+  // commit('globalModule/promptPreviousSessionsMutation', {field: 'sessionsList', value: sessionsList}, {root: true})
+  // console.log(response)
+  dispatch('globalModule/saveLogAction', {frontendAction: 'globalModule/actions.js/loadSessionAction'}, {root: true})
 }
 
 // https://github.com/douglascrockford/JSON-js/blob/master/cycle.js
@@ -163,6 +205,7 @@ JSON.decycle = function decycle (object, replacer) {
 
       oldPath = objects.get(value)
       if (oldPath !== undefined) {
+        console.log('!!!!! circular: ' + oldPath + ' -> globalModule/actions.js/saveLogAction.')
         return {$ref: oldPath}
       }
 

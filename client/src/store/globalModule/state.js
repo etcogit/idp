@@ -14,5 +14,7 @@ export default {
     vmodel: false, // v-model pour l'action sheet qui propose la liste des dernières sessions de l'utilisateur
     sessionsList: []
   },
-  rightDrawerOpen: false
+  leftDrawerOpen: true,
+  rightDrawerOpen: false,
+  navigationVModel: {}
 }

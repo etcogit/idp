@@ -2,29 +2,31 @@ import Vue from 'vue'
 
 export const keepDbContactsMutation = (state, data) => {
   console.log('dbModule/mutations.js/keepDbContactsMutation: ')
-  // state.tempContacts = JSON.parse(JSON.stringify(data))
-  // Object.assign(state.contacts, data)
+  let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
+  // state.tempContacts = JSON.parse(JSON.stringify(myData))
+  // Object.assign(state.contacts, myData)
   // Si je ne reçois qu'un seul contact (quand je viens d'en rajouter un), je l'ajoute à la liste
-  if (!Array.isArray(data)) {
-    state.dbContacts.results.push(data)
+  if (!Array.isArray(myData)) {
+    state.dbContacts.results.push(myData)
   } else {
     // Si je reçois plusieurs contacts, j'écrase la liste
-    state.dbContacts.results = JSON.parse(JSON.stringify(data))
+    state.dbContacts.results = JSON.parse(JSON.stringify(myData))
   }
 }
 export const keepDbLogsMutation = (state, data) => {
   if (Vue.prototype.$appConfig.global.console.logs === true) {
     console.log('dbModule/mutations.js/keepDbLogsMutation: ')
   }
-  // state.tempContacts = JSON.parse(JSON.stringify(data))
-  // Object.assign(state.contacts, data)
-  if (!Array.isArray(data)) {
-    state.dbLogs.results.push({id: data._id, raw: data, treeFormatted: []})
+  let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
+  // state.tempContacts = JSON.parse(JSON.stringify(myData))
+  // Object.assign(state.contacts, myData)
+  if (!Array.isArray(myData)) {
+    state.dbLogs.results.push({id: myData._id, raw: myData, treeFormatted: []})
   } else {
     // Si je reçois plusieurs contacts, j'écrase la liste
     var newData = []
-    for (var i = 0; i < data.length; i++) {
-      newData.push({id: data[i]._id, raw: data[i], treeFormatted: []})
+    for (var i = 0; i < myData.length; i++) {
+      newData.push({id: myData[i]._id, raw: myData[i], treeFormatted: []})
     }
     state.dbLogs.results = JSON.parse(JSON.stringify(newData))
   }
@@ -32,6 +34,7 @@ export const keepDbLogsMutation = (state, data) => {
 // Cette mutation formatte un log pour le rendre compatible avec le composant q-tree. Il convertit les JSON stockés sous forme de texte en JSON puis parse le tout pour correspondre au schéma attendu par q-tree
 export const formatLogMutation = (state, [jsonObjToFormat, arrayIndex]) => {
   console.log('dbModule/mutations.js/formatLogMutation: ')
+  // let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
   // Fonction récursive qui formatte mon objet
   var jsonToTree = function (jsonObj, resultArray) {
     for (var key in jsonObj) {
@@ -63,9 +66,23 @@ export const formatLogMutation = (state, [jsonObjToFormat, arrayIndex]) => {
 }
 export const saveLastRequest = (state, data) => {
   console.log('dbModule/mutations.js/saveLastRequest: ')
-  state[data.db][data.requestType] = {date: new Date(), request: data.request}
+  let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
+  state[myData.db][myData.requestType] = {date: new Date(), request: myData.request}
 }
 export const keepUsersThatNeedHelpMutation = (state, data) => {
   console.log('dbModule/mutations.js/keepUsersThatNeedHelpMutation: ')
-  state.listUsersThatNeedHelp.results = data
+  let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
+  state.listUsersThatNeedHelp.results = myData
+}
+
+function getDataIfSyncSessions (data) {
+  // ---- si on est en mode "syncSessions", les données du payload sont dans un sous-objet "data.data"
+  let myData = null
+  if (data.hasOwnProperty('data')) {
+    myData = data.data
+  } else {
+    myData = data
+  }
+  return myData
+  // ----
 }

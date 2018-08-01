@@ -110,11 +110,14 @@ export const getLastSessionsAction = ({ commit, rootState, dispatch }, data) => 
   dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/getLastSessionsAction', backendAction: 'getLastSessions', payloadToServer: query}, {root: true})
 }
 // Je vais chercher le contenu d'une session à charger
-export const loadSessionAction = ({ dispatch, commit, rootState }, data) => {
+export const getSessionAction = ({ dispatch, commit, rootState }, data) => {
   console.log('dbModule/actions.js/loadSessionAction: ' + JSON.stringify(data))
   let query = {conditions: {_id: data.logId}}
   Vue.prototype.$axios.post('/getSession', query)
     .then((response) => {
+      // console.log(response)
+      dispatch('globalModule/loadSessionAction', response.data[0], { root: true })
+      /*
       // Je remet en JSON toutes les données stockées sous forme de text dans la DB à des fins de recherche full text. La liste des champs est stockée dans le plugin "appConfig"
       let fieldsToParse = Vue.prototype.$appConfig.db.logs.fieldsToStringify
       for (var i = 0; i < fieldsToParse.length; i++) {
@@ -132,6 +135,7 @@ export const loadSessionAction = ({ dispatch, commit, rootState }, data) => {
 
       // commit('globalModule/promptPreviousSessionsMutation', {field: 'sessionsList', value: sessionsList}, {root: true})
       // console.log(response)
+      */
     })
     .catch(() => {
       Vue.prototype.$q.notify({
@@ -199,12 +203,75 @@ export const joinSocketRoomAction = ({ dispatch, commit, rootState }, data) => {
   // Si la room a vocation d'aider (et pas de chatter), je rajoute le rootState aux datas à envoyer au serveur pour qu'il les transmette à l'aidant
   if (data.goal === 'help') {
     data.rootState = rootState
+    data.route = router.history.current.fullPath // me permet de récupérer le "path" de l'url
   }
   Vue.prototype.$socket.emit('joinSocketRoom', data)
   commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: data, requestProtocol: 'socket', requestBackendAction: 'joinSocketRoom'})
   // console.log(JSON.stringify(query))
   dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/joinSocketRoomAction', backendAction: 'joinSocketRoom', payloadToServer: data}, {root: true})
 }
+export const iWantToStopHelpingAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/iWantToStopHelpingAction')
+  let query = {users: rootState.helpModule.users}
+  query.roomName = rootState.helpModule.roomName
+  Vue.prototype.$socket.emit('iWantToStopHelping', query)
+  commit('saveLastRequest', {db: 'listUsersThatNeedHelp', requestType: 'lastPostRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'iWantToStopHelping'})
+  // console.log(JSON.stringify(query))
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/iWantToStopHelpingAction', backendAction: 'iWantToStopHelping', payloadToServer: query}, {root: true})
+}
+export const addContributionAction = ({ dispatch, commit }, data) => {
+  console.log('dbModule/actions.js/addContributionAction')
+  let query = data
+  Vue.prototype.$socket.emit('addContribution', query)
+  commit('saveLastRequest', {db: 'dbContributions', requestType: 'lastPostRequest', request: query, requestProtocol: 'socket', requestBackendAction: 'addContribution'})
+  // console.log(JSON.stringify(query))
+  dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/addContributionAction', backendAction: 'addContribution', payloadToServer: query}, {root: true})
+}
+// Je propage les mutations à synchroniser avec la session de l'autre utilisateur
+export const syncSessionsSendAction = ({ rootState }, data) => {
+  console.log('dbModule/actions.js/syncSessionsSendAction')
+  // console.log(data)
+  let query = JSON.parse(JSON.stringify(data))
+  query.roomName = rootState.helpModule.roomName
+  // console.log(query)
+  Vue.prototype.$socket.emit('syncSessions', query)
+
+  // dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/syncSessionsSendAction', backendAction: 'syncSessions', payloadToServer: data}, {root: true})
+}
+// Je propage les changements de 'route'
+export const syncRoutesSendAction = ({ dispatch, commit, rootState }, data) => {
+  console.log('dbModule/actions.js/syncRoutesSendAction')
+  // console.log(data)
+  let query = {
+    from: {
+      fullPath: data.from.fullPath,
+      hash: data.from.hash,
+      meta: data.from.meta,
+      name: data.from.name,
+      params: data.from.params,
+      path: data.from.path,
+      query: data.from.query
+    },
+    to: {
+      fullPath: data.to.fullPath,
+      hash: data.to.hash,
+      meta: data.to.meta,
+      name: data.to.name,
+      params: data.to.params,
+      path: data.to.path,
+      query: data.to.query
+    },
+    roomName: rootState.helpModule.roomName
+  }
+
+  console.log(query)
+  Vue.prototype.$socket.emit('syncRoutes', query)
+  // Vue.prototype.$socket.emit('syncSessions', query)
+  return true
+
+  // dispatch('globalModule/saveLogAction', {frontendAction: 'dbModule/actions.js/syncSessionsSendAction', backendAction: 'syncSessions', payloadToServer: data}, {root: true})
+}
+
 /*
 export const getLogsAction = ({ dispatch }, data) => {
   console.log('dbModule/actions.js/getLogsAction')

@@ -16,6 +16,48 @@ import helpModule from './helpModule'
 
 Vue.use(Vuex)
 
+// VUEX PLUGINS https://vuex.vuejs.org/guide/plugins.html
+
+const syncSessions = store => {
+  store.subscribe((mutation, state) => {
+    // Si les sessions sont synchronisées, alors à chaque commit j'envoie une requête à l'autre pour qu'il committe aussi de son côté
+    if (state.helpModule.sessionSharing === true) {
+      // console.log(mutation)
+      // if (mutation.type === 'globalModule/rightDrawerOpenMutation') {
+      // Je vérifie que la mutation à propager n'est pas déjà une mutation propagée, afin d'éviter de créer une boucle infinie
+      if (!mutation.payload.hasOwnProperty('technicalData') || !mutation.payload.technicalData.hasOwnProperty('propagateSyncSession') || mutation.payload.technicalData.propagateSyncSession === true) {
+        console.log('--> SYNC THIS MUTATION: ' + mutation.type)
+        // console.log(Vue)
+        // console.log(mutation)
+        store.dispatch('dbModule/syncSessionsSendAction', mutation)
+      }
+      // }
+    }
+  })
+}
+/*
+function syncSessions (io) {
+  console.log(io)
+  return store => {
+    // Quand le serveur m'envoie une mutation à effectuer, je l'effectue
+    io.on('socketSyncSessions', data => {
+      console.log('==> ' + data.type)
+      store.commit(data.type, data.payload)
+    })
+    store.subscribe((mutation, state) => {
+      // Si les sessions sont synchronisées, alors à chaque commit j'envoie une requête à l'autre pour qu'il committe aussi de son côté
+      if (state.helpModule.sessionSharing === true) {
+        console.log('--> ' + mutation.type)
+        // console.log(mutation)
+        io.to(state.helpModule.roomName).emit('syncSessions', mutation)
+      }
+    })
+  }
+}
+
+const syncSessionsPlugin = syncSessions(Vue.prototype.$socket)
+*/
+
 // J'associe mes modules à mon store
 const store = new Vuex.Store({
   modules: {
@@ -26,7 +68,8 @@ const store = new Vuex.Store({
     ingests,
     helpModule
   },
-  strict: true
+  strict: true,
+  plugins: [syncSessions]
 })
 
 // J'associe Vuex à mes modules store

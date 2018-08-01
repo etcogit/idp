@@ -4,15 +4,15 @@
     <!-- (Optional) The Header -->
     <q-layout-header>
       <div v-if="promptUserDeviceName" class="row gutter-sm text-white bg-teal-10 items-center content-center" style="padding-top: 10px">
-        <div class="col-xs-12 col-sm-7" style="text-align:center; justify:center">{{ $appConfig.promptUserDevice.text }}</div>
+        <div class="col-xs-12 col-sm-7" style="text-align:center; justify:center">{{ $appConfig.idp_home.other.promptUserDevice.text }}</div>
         <div class="col-xs-1 col-sm-0"></div>
-        <div class="col-xs-6 col-sm-2"><q-input class="col" style="padding: 0" :placeholder="$appConfig.promptUserDevice.name.placeholder" hide-underline align="center" color="teal-4" inverted v-model="userDeviceNameComputed" @keyup.enter="createUserDeviceCookieAction" /></div>
-        <div class="col-xs-5 col-sm-2"><q-btn class="col" color="teal-4" :label="$appConfig.promptUserDevice.btn.label" @click="createUserDeviceCookieAction" /></div>
+        <div class="col-xs-6 col-sm-2"><q-input class="col" style="padding: 0" :placeholder="$appConfig.idp_home.other.promptUserDevice.name.placeholder" hide-underline align="center" color="teal-4" inverted v-model="userDeviceNameComputed" @keyup.enter="createUserDeviceCookieAction" /></div>
+        <div class="col-xs-5 col-sm-2"><q-btn class="col" color="teal-4" :label="$appConfig.idp_home.other.promptUserDevice.btn.label" @click="createUserDeviceCookieAction" /></div>
         <div class="col-xs-0 col-sm-1"></div>
       </div>
-      <div v-if="helping" class="row gutter-sm bg-orange" style="text-align:center; padding: 5px">
-        <div class="col-xs-12 col-sm-8">Cette page est partagée avec {{ iNeedHelp ? users.userHelping.fullName : users.userHelped.fullName }}</div>
-        <div class="col-xs-12 col-sm-4"><q-btn dense outline label="Quitter le partage" @click="stopHelpingAction" /></div>
+      <div v-if="sessionSharing" class="row gutter-sm" :class="$appConfig.idp_home.other.promptSessionShared.bgColor" style="text-align:center; padding: 5px">
+        <div class="col-xs-12 col-sm-8">{{ $appConfig.idp_home.other.promptSessionShared.text }}{{ iNeedHelp ? users.userHelping.fullName : users.userHelped.fullName }}</div>
+        <div class="col-xs-12 col-sm-4"><q-btn dense outline :label="$appConfig.idp_home.other.promptSessionShared.btn.label" @click="iWantToStopHelpingAction" /></div>
       </div>
       <q-toolbar>
         <q-btn
@@ -20,7 +20,7 @@
           round
           dense
           :icon="$appConfig.idp_home.toolbar.icon"
-          @click="leftDrawerOpen = !leftDrawerOpen"
+          @click="leftDrawerOpenMutation"
         />
         <q-toolbar-title>
           {{ $appConfig.idp_home.toolbar.title }}
@@ -44,11 +44,25 @@
           @click.native="rightDrawerOpenMutation"
         />
         <!-- USER -->
+        <!--
         <q-btn
           dense
           flat
           :icon="$appConfig.idp_home.toolbar.user.icon"
         >
+          <q-chip avatar="statics/avatars/bbp.jpg" color="grey-4" text-color="black">John</q-chip>
+          <img src="statics/avatars/bbp.jpg" class="q-chip-side" />
+        -->
+        <q-btn
+          round
+          :color="$appConfig.global.avatar.bgColor"
+          :text-color="$appConfig.global.avatar.textColor"
+          class="q-chip-side"
+          v-if="userConnected._id"
+        >
+          <!-- Je charge l'image de l'avatar, mais si le chargement génère une erreur (404 pcq l'image n'existe pas) alors j'affiche un rond avec le première lettre du prénom et du nom en majuscules -->
+          <img v-if="hasAvatarImg" :src="`statics/avatars/${userConnected.rtbfLogin}.jpg`" class="q-chip-side" @error="hasAvatarImgMutation(false)" />
+          <span v-else>{{ userConnected.firstName | capitalizeFirstLetter }}{{ userConnected.lastName | capitalizeFirstLetter }}</span>
           <q-popover>
             <!-- ME -->
             <q-item>
@@ -101,7 +115,7 @@
     <!-- TIROIR DE GAUCHE -->
     <q-layout-drawer
       side="left"
-      v-model="leftDrawerOpen"
+      v-model="leftDrawerOpenComputed"
       :content-class="$q.theme === 'mat' ? 'bg-grey-2' : null"
     >
       <q-list
@@ -161,21 +175,24 @@
           <template slot="header">
             <q-item-side left>
               <q-icon
-                :name="$appConfig.idp_home.rightDrawer.help.accordion.userNeedHelp.accordionIcon"
+                :name="$appConfig.idp_home.rightDrawer.help.accordion.usersNeedHelp.accordionIcon"
                 :color="$appConfig.global.color.help.primaryColor"
                 size="24px"
               />
             </q-item-side>
-            <q-item-main :label="$appConfig.idp_home.rightDrawer.help.accordion.userNeedHelp.accordionLabel" />
+            <q-item-main :label="$appConfig.idp_home.rightDrawer.help.accordion.usersNeedHelp.accordionLabel" />
           </template>
           <q-list no-border>
-            <q-item v-for="userThatNeedHelp in listUsersThatNeedHelp.results" :key="userThatNeedHelp.userId">
+            <q-item v-for="userThatNeedsHelp in listUsersThatNeedHelp.results" :key="userThatNeedsHelp.userId">
               <q-item-side left icon="account_circle" />
-              <q-item-main>
-                <div>{{ userThatNeedHelp.firstName + ' ' + userThatNeedHelp.lastName }}</div>
+              <q-item-main :label="userThatNeedsHelp.fullName" :sublabel="userThatNeedsHelp.status === 'beingHelped' ? 'aide en cours...' : ''">
               </q-item-main>
               <q-item-side right>
-                <q-btn label="Aider" dense outline :color="$appConfig.global.color.help.primaryColor" :disable="iNeedHelp" @click="iWillHelpAction(userThatNeedHelp)" />
+                <q-btn v-if="userThatNeedsHelp.status === 'waitingForHelp'" label="Aider" dense outline :color="$appConfig.global.color.help.primaryColor" :disable="iNeedHelp || sessionSharing" @click="iWillHelpAction(userThatNeedsHelp)" />
+                <!-- <div v-if="userThatNeedsHelp.status === 'beingHelped'" :color="$appConfig.global.color.help.textPrimaryColor">en cours...</div> -->
+                <q-icon v-if="userThatNeedsHelp.status === 'beingHelped'" :name="$appConfig.idp_home.rightDrawer.help.accordion.usersNeedHelp.beingHelped" :color="$appConfig.global.color.help.primaryColor">
+                  <q-tooltip class="text-no-wrap">{{ userThatNeedsHelp.userHelping.fullName }} est en train de l'aider</q-tooltip>
+                </q-icon>
               </q-item-side>
             </q-item>
           </q-list>
@@ -225,8 +242,8 @@
       :no-esc-dismiss="true"
       :no-backdrop-dismiss="true"
     >
-      <div class="q-display-1 q-mb-md">{{ $appConfig.modalUserConnection.title }}</div>
-      <q-search v-model="userConnectAutoCompleteTextInput" autofocus="true" :placeholder="$appConfig.modalUserConnection.placeholder">
+      <div class="q-display-1 q-mb-md">{{ $appConfig.idp_home.modal.modalUserConnection.title }}</div>
+      <q-search v-model="userConnectAutoCompleteTextInput" autofocus="true" :placeholder="$appConfig.idp_home.modal.modalUserConnection.placeholder">
         <!--
         <q-autocomplete
           :static-data="{field: 'rtbfLogin', list: dbContacts.results}"
@@ -242,17 +259,69 @@
         />
       </q-search>
     </q-modal>
+    <!-- MODAL D'EVALUATION APRES UNE SESSION D'AIDE -->
+    <q-modal
+      v-model="promptRatingHelp"
+      :content-css="{padding: '0px', minWidth: '50vw'}"
+      :no-route-dismiss="true"
+      :no-esc-dismiss="true"
+      :no-backdrop-dismiss="true"
+    >
+      <q-stepper v-model="ratingHelpStepComputed" alternative-labels contractable>
+        <q-step name="first" title="Evaluation de l'aide">
+          <q-option-group
+            type="radio"
+            v-model="ratingHelpComputed"
+            :options="[
+              {value: 'heFoundSolution', label: `${ userConnected.fullName } a trouvé la solution à mon problème, sans son aide je n\'aurais pas trouvé !`},
+              {value: 'weFoundSolution', label: 'Nous avons trouvé ensemble la solution à mon problème'},
+              {value: 'iFoundSolution', label: 'J\'ai trouvé moi-même la solution à mon problème'},
+              {value: 'noSolutionFound', label: 'Nous n\'avons pas trouvé de solution à mon problème'},
+            ]"
+            @input="ratingHelpStepMutation('second')"
+          />
+          <q-stepper-navigation v-if="ratingHelp !== ''">
+            <q-btn
+              color="secondary"
+              @click="ratingHelpStepMutation('second')"
+              label="Suivant"
+            />
+          </q-stepper-navigation>
+        </q-step>
+        <q-step name="second" title="Amélioration du système">
+          <div>Que faudrait-il faire pour que tes collègues n'aient pas le même problème ?</div>
+          <q-option-group
+            type="checkbox"
+            v-model="wichHelpContributionComputed"
+            :options="[
+              {value: 'communicate', label: 'Communiquer cette procédure méconnue à mes collègues'},
+              {value: 'addFaq', label: 'Rajouter / modifier une question dans la FAQ'},
+              {value: 'addTuto', label: 'Rédiger / modifier un tutoriel'},
+              {value: 'modifyDoc', label: 'Modifier la documentation'},
+              {value: 'newFeature', label: 'Proposer une amélioration de l\'Intraprod'},
+              {value: 'reportBug', label: 'Rapporter un bug'},
+              {value: 'nothing', label: 'Rien (j\'avais oublié cette procédure, je n\'ai pas le temps d\'aider mes collègues, etc...)'},
+            ]"
+          />
+          <q-btn
+            color="secondary"
+            label="Valider"
+            @click="ratingHelpValidateAction"
+          />
+        </q-step>
+      </q-stepper>
+    </q-modal>
     <!-- Cette action sheet affiche les dernières sessions de l'utilisateur quand il se connecte, lui proposant de poursuivre une session antérieure -->
     <q-action-sheet
       v-model="promptPreviousSessionsComputed"
-      :title="$appConfig.promptPreviousSessions.title"
+      :title="$appConfig.idp_home.actionSheet.promptPreviousSessions.title"
       :actions="promptPreviousSessions.sessionsList"
-      @ok="loadSessionAction"
+      @ok="getSessionAction"
     />
     <!-- Bouton d'annulation de demande d'aide -->
     <!-- Cet élément doit rester le dernier avant la balise de fermeture q-layout -->
     <q-page-sticky position="bottom-right" :offset="[18, 18]">
-      <q-btn v-if="iNeedHelp" :color="$appConfig.global.color.help.primaryColor" :label="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonLabel" @click="iNeedHelpCancelAction" :icon="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonIcon" />
+      <q-btn v-if="iNeedHelp && !sessionSharing" :color="$appConfig.global.color.help.primaryColor" :label="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonLabel" @click="iNeedHelpCancelAction" :icon="$appConfig.idp_home.sticky.iNeedHelp.cancelButtonIcon" />
     </q-page-sticky>
   </q-layout>
 </template>
@@ -278,9 +347,38 @@ export default {
   mounted () {
     this.saveLogAction({})
   },
+  filters: {
+    capitalizeFirstLetter: function (value) {
+      if (!value) return ''
+      value = value.toString()
+      return value.charAt(0).toUpperCase()
+    }
+  },
+  /*
+  beforeRouteUpdate (to, from, next) {
+    // react to route changes...
+    console.log('CHANGING ROUTE')
+    if (from.fullPath !== to.fullPath) {
+      this.$socket.emit('syncRoutes', {from: from, to: to})
+      // this.syncRoutesSendAction({from: from, to: to})
+      // console.log(from)
+      // console.log(to)
+      // don't forget to call next()
+      next()
+    }
+  },
+  */
+  watch: {
+    $route (to, from) { // Ceci ne sert que qu'en cas de syncSessions. Ce serait bien de ne déclarer ce 'watch' qu'au moment où commence une session synchronisée
+      // Si je suis en mode "partage de session" et que la route vers laquelle je vais n'est pas celle sur laquelle je suis -> permet d'éviter une boucle entre les 2 sessions synchronisées
+      if (this.sessionSharing === true && from.fullPath !== to.fullPath) {
+        console.log('CHANGING ROUTE')
+        this.syncRoutesSendAction({from: from, to: to})
+      }
+    }
+  },
   data () {
     return {
-      leftDrawerOpen: true,
       userConnectAutoCompleteTextInput: ''
     }
   },
@@ -293,6 +391,7 @@ export default {
         'promptUserConnection',
         'promptPreviousSessions',
         'promptUserDeviceName',
+        'leftDrawerOpen',
         'rightDrawerOpen',
         'userDevice'
       ]
@@ -303,8 +402,12 @@ export default {
         'waysToContactMe',
         'iNeedHelp',
         'usersNeedHelp',
-        'helping',
-        'userHelping'
+        'sessionSharing',
+        'users',
+        'promptRatingHelp',
+        'ratingHelp',
+        'ratingHelpStep',
+        'wichHelpContribution'
       ]
     ),
     ...mapState(
@@ -312,6 +415,12 @@ export default {
       [
         // 'dbContacts'
         'listUsersThatNeedHelp'
+      ]
+    ),
+    ...mapState(
+      'userModule',
+      [
+        'hasAvatarImg'
       ]
     ),
     // ...mapGetters([])
@@ -335,6 +444,15 @@ export default {
         this.rightDrawerOpenMutation(value)
       }
     },
+    leftDrawerOpenComputed: {
+      get () {
+        // console.log('leftDrawerOpen: ' + this.leftDrawerOpen)
+        return this.leftDrawerOpen
+      },
+      set (value) {
+        this.leftDrawerOpenMutation(value)
+      }
+    },
     waysToContactMeComputed: {
       get () {
         return this.waysToContactMe
@@ -349,6 +467,30 @@ export default {
       },
       set (value) {
         this.userDeviceMutation({name: value})
+      }
+    },
+    ratingHelpComputed: {
+      get () {
+        return this.ratingHelp
+      },
+      set (value) {
+        this.ratingHelpMutation(value)
+      }
+    },
+    ratingHelpStepComputed: {
+      get () {
+        return this.ratingHelpStep
+      },
+      set (value) {
+        this.ratingHelpStepMutation(value)
+      }
+    },
+    wichHelpContributionComputed: {
+      get () {
+        return this.wichHelpContribution
+      },
+      set (value) {
+        this.wichHelpContributionMutation(value)
       }
     }
     /*
@@ -468,6 +610,7 @@ export default {
         'deleteLogOfTempMemoryMutation',
         'promptPreviousSessionsMutation',
         'promptUserDeviceNameMutation',
+        'leftDrawerOpenMutation',
         'rightDrawerOpenMutation',
         'userDeviceMutation'
       ]
@@ -482,7 +625,16 @@ export default {
     ...mapMutations(
       'helpModule',
       [
-        'waysToContactMeMutation'
+        'waysToContactMeMutation',
+        'ratingHelpMutation',
+        'ratingHelpStepMutation',
+        'wichHelpContributionMutation'
+      ]
+    ),
+    ...mapMutations(
+      'userModule',
+      [
+        'hasAvatarImgMutation'
       ]
     ),
     ...mapActions(
@@ -492,16 +644,20 @@ export default {
         'connectUserAction',
         'connectUserIfCookieAction',
         'disconnectUserAction',
-        'createUserDeviceCookieAction'
+        'createUserDeviceCookieAction',
+        'syncSessionsAction',
+        'syncRoutesAction'
       ]
     ),
     ...mapActions(
       'dbModule',
       [
         'keepDbLogsAction',
-        'loadSessionAction',
+        'getSessionAction',
         'iWillHelpAction',
-        'joinSocketRoomAction'
+        'joinSocketRoomAction',
+        'iWantToStopHelpingAction',
+        'syncRoutesSendAction'
       ]
     ),
     ...mapActions(
@@ -511,7 +667,9 @@ export default {
         'iNeedHelpCancelAction',
         'keepUsersThatNeedHelpAction',
         'startHelpingAction',
-        'stopHelpingAction'
+        'stopHelpingAction',
+        'ratingHelpValidateAction',
+        'contributionAddedAction'
       ]
     )
   },
@@ -592,10 +750,29 @@ export default {
     // Je reçois le rootState de l'aidé
     socketStartHelping (data) {
       console.log('idp_home.vue/socketStartHelping')
-      console.log(data)
       // console.log(data)
-      // console.log(this.$socket)
       this.startHelpingAction(data)
+    },
+    // l'aidé que je voualis aider est déjà en train de se faire aider
+    socketStopHelping (data) {
+      console.log('idp_home.vue/socketStopHelping')
+      // console.log(data)
+      this.stopHelpingAction(data)
+    },
+    // Je remercie l'utilisateur d'avoir contribué
+    socketContributionAdded (data) {
+      console.log('idp_home.vue/socketContributionAdded')
+      this.contributionAddedAction(data)
+    },
+    // Je reçois une mutation à effectuer
+    socketSyncSessions (data) {
+      console.log('idp_home.vue/socketSyncSessions')
+      this.syncSessionsAction(data)
+    },
+    // Je reçois une mutation à effectuer
+    socketSyncRoutes (data) {
+      console.log('idp_home.vue/socketSyncRoutes')
+      this.syncRoutesAction(data)
     }
   }
 }

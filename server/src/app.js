@@ -17,6 +17,7 @@ db.once('open', function () {
 
 var ContactModel = require('../models/contact')
 var LogModel = require('../models/logs')
+var ContributionModel = require('../models/contributions')
 
 // SERVEUR HTTP ////////////////////////////
 // var http = require('http')
@@ -296,23 +297,37 @@ io.sockets.on('connection', function (socket) {
     console.log('SOCKET: iWillHelp: ')
     console.log(payload)
 
-    // Si j'ai bien un user connecté avec cette 'socketId'...
+    // Si j'ai bien un 'demandeur d'aide' connecté avec cette 'socketId'...
     let indexOfSocketId = usersThatNeedHelp.findIndex(index => index.socketId === payload.userHelped.socketId)
     if (indexOfSocketId >= 0) {
-      // ...j'enregistre l'info dans ma liste
-      usersThatNeedHelp[indexOfSocketId].helpedBy = payload.userHelping.rtbfLogin
-      usersThatNeedHelp[indexOfSocketId].status = 'beingHelped'
-      // ...je dois ensuite créer une 'room' et y inscrire mes 2 users
-      let roomName = 'helping_' + payload.userHelped.socketId
-      socket.join(roomName)
-      // Je demande à la personne que je vais aider de rejoindre cette room dans le but de l'aider
-      socket.broadcast.to(payload.userHelped.socketId).emit('socketJoinRoom', {roomName: roomName, goal: 'help', users: payload})
-      // J'envoie un statut à la personne qui aide pour mettre à jour le statut d'attente
-      // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
-      // socket.to(roomName).emit('socketJoinRoom', roomName)
-      // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
-      // socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
-      // console.log(usersThatNeedHelp)
+      // ... et si cet utilisateur est bien encore en attente d'aide
+      if (usersThatNeedHelp[indexOfSocketId].status === 'waitingForHelp') {
+        // console.log('waitingForHelp')
+        // ...j'enregistre l'info dans ma liste
+        usersThatNeedHelp[indexOfSocketId].userHelping = payload.userHelping
+        usersThatNeedHelp[indexOfSocketId].helpingStart = new Date()
+        usersThatNeedHelp[indexOfSocketId].status = 'beingHelped'
+        // ...je dois ensuite créer une 'room' et y inscrire mes 2 users
+        let roomName = 'helping_' + payload.userHelped.socketId
+        socket.join(roomName)
+        // Je demande à la personne que je vais aider de rejoindre cette room dans le but de l'aider
+        socket.broadcast.to(payload.userHelped.socketId).emit('socketJoinRoom', {roomName: roomName, goal: 'help', users: payload})
+        // Je renvoie à tout le monde le statut des demandes d'aide
+        socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+        socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+      } else if (usersThatNeedHelp[indexOfSocketId].status === 'beingHelped') {
+        // console.log('beingHelped')
+        // Si ce user n'est plus en attente d'aide (qqun a été plus rapide que moi pour proposer son aide)
+        // J'avertis l'utilisateur que la personne est déjà en train d'être aidée
+        payload.stopHelpingReason = 'userHelpedIsAlreadyBeingHelped'
+        socket.emit('socketStopHelping', payload)
+      }
+    } else {
+      // console.log('userHelpedDoesNotNeedHelpAnymore')
+      // Si ce user n'est plus dans la liste des demandeurs d'aide
+      // J'avertis l'aidant que la demande d'aide n'existe plus
+      payload.stopHelpingReason = 'userHelpedDoesNotNeedHelpAnymore'
+      socket.emit('socketStopHelping', payload)
     }
   })
 
@@ -329,6 +344,52 @@ io.sockets.on('connection', function (socket) {
     // console.log(usersThatNeedHelp)
   })
 
+  // Un user stoppe l'aide
+  socket.on('iWantToStopHelping', function (payload) {
+    console.log('SOCKET: iWantToStopHelping: ')
+    // console.log(socket.id)
+    console.log(payload)
+
+    // Je cherche dans la liste quel utilisateur était aidé
+    let indexOfSocketId = usersThatNeedHelp.findIndex(index => index.socketId === payload.users.userHelped.socketId)
+    // Je retire cette demande de ma liste
+    usersThatNeedHelp.splice(indexOfSocketId, 1)
+    // Je propage les modifications de la liste à tout le monde
+    socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
+    // Je déclenche la fermeture de session chez l'aidant et l'aidé
+    payload.stopHelpingReason = 'helpStoppedByUser'
+    io.sockets.to(payload.roomName).emit('socketStopHelping', payload)
+    // Je ferme la room (une room ne s'efface pas... on la vide)
+    /*
+    io.sockets.clients(payload.roomName).forEach(function (s) {
+      s.leave(payload.roomName)
+    })
+    */
+  })
+
+  // Sync Sessions
+  socket.on('syncSessions', function (payload) {
+    console.log('SOCKET: syncSessions: ')
+    console.log(payload)
+
+    // J'envoie la mutation à effectuer à tous les membres de la room excepté le "sender" (grâce à "broadcast")
+    socket.broadcast.to(payload.roomName).emit('socketSyncSessions', payload)
+    // Pour envoyer à tous les membres de la room, il faut faire comme ci-dessous
+    // io.sockets.to(payload.roomName).emit('socketSyncSessions', payload)
+  })
+
+  // Sync Routes
+  socket.on('syncRoutes', function (payload) {
+    console.log('SOCKET: syncRoutes: ')
+    console.log(payload)
+
+    // J'envoie la nouvelle route à tous les membres de la room excepté le "sender" (grâce à "broadcast")
+    socket.broadcast.to(payload.roomName).emit('socketSyncRoutes', payload)
+    // Pour envoyer à tous les membres de la room, il faut faire comme ci-dessous
+    // io.sockets.to(payload.roomName).emit('socketSyncSessions', payload)
+  })
+
   // Chat
   socket.on('chat', function (payload) {
     console.log('SOCKET: chat: ')
@@ -338,6 +399,20 @@ io.sockets.on('connection', function (socket) {
     // socket.emit('usersThatNeedHelpList', usersThatNeedHelp)
     // socket.broadcast.emit('usersThatNeedHelpList', usersThatNeedHelp)
     // console.log(usersThatNeedHelp)
+  })
+
+  // Ajout d'une contribution
+  socket.on('addContribution', function (payload) {
+    console.log('SOCKET: addContribution: ')
+    console.log(payload)
+
+    var contributions = new ContributionModel()
+    Object.assign(contributions, payload) // Je rajoute à contributions le contenu de payload en respectant la structure de l'objet
+    contributions.save(function (err, result) {
+      if (err) { throw err }
+      console.log('Contribution ajoutée avec succès !')
+      socket.emit('socketContributionAdded', result)
+    })
   })
 })
 

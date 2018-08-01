@@ -23,6 +23,18 @@ export default {
       request: {}
     }
   },
+  // Liste des contributions
+  dbContributions: {
+    results: [],
+    lastPostRequest: {
+      date: '',
+      request: {}
+    },
+    lastGetRequest: {
+      date: '',
+      request: {}
+    }
+  },
   // Liste des users que je propose dans ma popup de connexion -> noramelement pas besoin à la RTBF car autologin
   /*
   dbUsersForAutocomplete: {

@@ -18,6 +18,10 @@ export default ({ app, router, Vue }) => {
       },
       console: {
         logs: false
+      },
+      avatar: {
+        bgColor: 'secondary',
+        textColor: 'white'
       }
     },
     db: {
@@ -35,22 +39,6 @@ export default ({ app, router, Vue }) => {
       contacts: {
         maxLimitResults: 100
       }
-    },
-    promptPreviousSessions: {
-      title: 'Continuer la session précédente ?'
-    },
-    promptUserDevice: {
-      text: 'C\'est la première fois que tu te connectes depuis cet appareil? Donne-lui un nom pour mieux gérer tes reprises de session:',
-      name: {
-        placeholder: '...nom de l\'appareil'
-      },
-      btn: {
-        label: 'Valider'
-      }
-    },
-    modalUserConnection: {
-      title: 'Auto-login ;-)',
-      placeholder: 'qui es-tu ?'
     },
     idp_home: {
       toolbar: {
@@ -77,9 +65,10 @@ export default ({ app, router, Vue }) => {
       rightDrawer: {
         help: {
           accordion: {
-            userNeedHelp: {
+            usersNeedHelp: {
               accordionLabel: 'Proposer mon aide',
-              accordionIcon: 'directions_run'
+              accordionIcon: 'directions_run',
+              beingHelped: 'directions_run'
             },
             iNeedHelp: {
               accordionLabel: 'Demander de l\'aide aux utilisateurs connectés',
@@ -126,6 +115,62 @@ export default ({ app, router, Vue }) => {
         iNeedHelp: {
           cancelButtonLabel: 'Annuler ma demande d\'aide',
           cancelButtonIcon: 'delete'
+        }
+      },
+      modal: {
+        modalUserConnection: {
+          title: 'Auto-login ;-)',
+          placeholder: 'qui es-tu ?'
+        },
+        modalRatingHelp: {
+          title: 'Evaluation de l\'aide'
+        }
+      },
+      actionSheet: {
+        promptPreviousSessions: {
+          title: 'Continuer la session précédente ?'
+        }
+      },
+      other: {
+        promptUserDevice: {
+          text: 'C\'est la première fois que tu te connectes depuis cet appareil? Donne-lui un nom pour mieux gérer tes reprises de session:',
+          name: {
+            placeholder: '...nom de l\'appareil'
+          },
+          btn: {
+            label: 'Enregistrer'
+          }
+        },
+        promptSessionShared: {
+          text: 'Cette page est partagée avec ',
+          bgColor: 'bg-purple text-white', // bg-orange
+          btn: {
+            label: 'Quitter le partage'
+          }
+        }
+      }
+    },
+    helpModule: {
+      notify: {
+        userHelpedIsAlreadyBeingHelped: {
+          message: ` vient juste d'être pris en charge par un autre collègue. Merci quand même !`,
+          icon: 'thumb_up',
+          color: 'positive'
+        },
+        userHelpedDoesNotNeedHelpAnymore: {
+          message: ` n'a plus besoin d'aide. Merci quand même !`,
+          icon: 'thumb_up',
+          color: 'positive'
+        },
+        helpStoppedByUser: {
+          message: `Merci pour ton aide ! N'hésite pas à contribuer à la documentation si tu l'estimes nécessaire !`,
+          icon: 'thumb_up',
+          color: 'positive'
+        },
+        userHelpedContributed: {
+          message: `Merci pour ta contribution !`,
+          icon: 'thumb_up',
+          color: 'positive'
         }
       }
     }
