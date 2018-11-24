@@ -1,5 +1,9 @@
 import Vue from 'vue'
 
+export const fullStateMutation = (state, data) => {
+  console.log('dbModule/mutations.js/fullStateMutation: ')
+  state = data
+}
 export const keepDbContactsMutation = (state, data) => {
   console.log('dbModule/mutations.js/keepDbContactsMutation: ')
   let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data

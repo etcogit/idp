@@ -30,6 +30,14 @@ var logsSchema = new Schema(
 
 // J'ajoute des options
 logsSchema.set('timestamps', true) // Cette option rajoute 2 champs: createdAt et updatedAt
+logsSchema.set('toObject', { virtuals: true }) // Cette option permet de rajouter les "virtuals" dans les champs qui sont renvoyés par la requête
+
+// Virtual for contact's full name
+logsSchema
+  .virtual('logId')
+  .get(function () {
+    return this._id
+  })
 
 // Export model
 module.exports = mongoose.model('userLogs', logsSchema)

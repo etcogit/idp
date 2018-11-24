@@ -122,13 +122,15 @@ export const loadSessionAction = ({ commit, dispatch, rootState }, data) => {
   console.log('globalModule/actions.js/loadSessionAction')
   console.log(data)
 
-  // Je remet en JSON toutes les données stockées sous forme de text dans la DB à des fins de recherche full text. La liste des champs est stockée dans le plugin "appConfig"
-  let fieldsToParse = Vue.prototype.$appConfig.db.logs.fieldsToStringify
-  for (var i = 0; i < fieldsToParse.length; i++) {
-    if (data[fieldsToParse[i]]) { // Si ce champ est dans la liste des champs à formater, alors je le fais
-      // console.log('fieldsToParsee = ' + fieldsToParse[i])
-      // console.log(JSON.parse(response[fieldsToParse[i]]))
-      data[fieldsToParse[i]] = JSON.parse(data[fieldsToParse[i]])
+  if (data.hasOwnProperty('logId')) { // Si les données à charger proviennent d'un log enregistré en DB, alors je dosi faire du "nettoyage"
+    // Je remet en JSON toutes les données stockées sous forme de text dans la DB à des fins de recherche full text. La liste des champs est stockée dans le plugin "appConfig"
+    let fieldsToParse = Vue.prototype.$appConfig.db.logs.fieldsToStringify
+    for (var i = 0; i < fieldsToParse.length; i++) {
+      if (data[fieldsToParse[i]]) { // Si ce champ est dans la liste des champs à formater, alors je le fais
+        // console.log('fieldsToParsee = ' + fieldsToParse[i])
+        // console.log(JSON.parse(response[fieldsToParse[i]]))
+        data[fieldsToParse[i]] = JSON.parse(data[fieldsToParse[i]])
+      }
     }
   }
 
@@ -136,7 +138,33 @@ export const loadSessionAction = ({ commit, dispatch, rootState }, data) => {
   router.push({path: data.route})
   // J'écrase le "rootState"
   // rootState = JSON.parse(JSON.stringify(data.rootState))
-
+  // Ces mutations ne doivent pas être propagées à l'autre (si je suis en mode "sessionSync") puisque c'est justement le rootState de l'autre que je suis en train de commiter chez moi
+  // dbModule
+  commit('dbModule/fullStateMutation',
+    {
+      technicalData: {
+        propagateSyncSession: false
+      },
+      data: data.rootState.dbModule
+    },
+    { root: true }
+  )
+  // globalModule
+  commit('globalModule/promptUserDeviceName', {technicalData: {propagateSyncSession: false}, data: data.rootState.globalModule.promptUserDeviceName}, { root: true })
+  commit('globalModule/promptUserConnectionMutation', {technicalData: {propagateSyncSession: false}, data: data.rootState.globalModule.promptUserConnection}, { root: true })
+  commit('globalModule/promptPreviousSessionsMutation', {technicalData: {propagateSyncSession: false}, data: data.rootState.globalModule.promptPreviousSessions}, { root: true })
+  commit('globalModule/leftDrawerOpenMutation', {technicalData: {propagateSyncSession: false}, data: data.rootState.globalModule.leftDrawerOpen}, { root: true })
+  commit('globalModule/rightDrawerOpenMutation', {technicalData: {propagateSyncSession: false}, data: data.rootState.globalModule.rightDrawerOpen}, { root: true })
+  // contactModule
+  commit('contactModule/fullStateMutation',
+    {
+      technicalData: {
+        propagateSyncSession: false
+      },
+      data: data.rootState.contactModule
+    },
+    { root: true }
+  )
   // Je relance les dernières requêtes pour récupérer les data
 
   // commit('globalModule/promptPreviousSessionsMutation', {field: 'sessionsList', value: sessionsList}, {root: true})

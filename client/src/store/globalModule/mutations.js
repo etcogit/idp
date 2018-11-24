@@ -113,13 +113,6 @@ export const promptUserDeviceNameMutation = (state, data) => {
     state.promptUserDeviceName = !state.promptUserDeviceName
   }
 }
-// Sert à modifier la valeur du v-model qui gère la navigation -> surtout utile lors de "syncSessions"
-export const navigationVModelMutation = (state, data) => {
-  console.log('globalModule/mutations.js/navigationVModelMutation: ')
-  // console.log(data)
-  let myData = getDataIfSyncSessions(data) // Si je suis en mode "syncSessions", les datas sont dans un sous objet data.data
-  state.navigationVModel = myData
-}
 
 function getDataIfSyncSessions (data) {
   // ---- si on est en mode "syncSessions", les données du payload sont dans un sous-objet "data.data"

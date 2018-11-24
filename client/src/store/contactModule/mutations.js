@@ -6,6 +6,10 @@ export const addContactToListMutation = (state, data) => {
   state.contacts.push(data)
 }
 */
+export const fullStateMutation = (state, data) => {
+  console.log('contactModule/mutations.js/fullStateMutation: ')
+  state = data
+}
 export const newContactSaveFormValuesMutation = (state, data) => {
   console.log('contactModule/mutations.js/newContactSaveFormValuesMutation: ' + data)
   console.log(data)
